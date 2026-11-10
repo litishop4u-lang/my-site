@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<BaseLayout
+  title="Blog"
+  description="Tổng hợp các bài viết chia sẻ kiến thức, kinh nghiệm và hướng dẫn mới nhất."
+>
+  <h1>Blog</h1>
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <h2><a href={`/blog/${post.id}/`}>{post.data.title}</a></h2>
+        <div class="post-meta">
+          {post.data.pubDate.toLocaleDateString('vi-VN')}
+        </div>
+        <p>{post.data.description}</p>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

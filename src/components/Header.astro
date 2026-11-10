@@ -1,0 +1,26 @@
+---
+const path = Astro.url.pathname;
+
+const links = [
+  { href: '/', label: 'Trang chủ' },
+  { href: '/gioi-thieu/', label: 'Giới thiệu' },
+  { href: '/blog/', label: 'Blog' },
+];
+
+function isActive(href: string) {
+  return href === '/' ? path === '/' : path.startsWith(href);
+}
+---
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/">Trợ Lực Điện LKEbike</a>
+    <nav aria-label="Menu chính">
+      {links.map((link) => (
+        <a href={link.href} aria-current={isActive(link.href) ? 'page' : undefined}>
+          {link.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>

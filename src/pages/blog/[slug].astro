@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const url = new URL(Astro.url.pathname, Astro.site).toString();
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
+  mainEntityOfPage: url,
+  image: post.data.image ? new URL(post.data.image, Astro.site).toString() : undefined,
+  author: { '@type': 'Organization', name: 'Trợ Lực Điện LKEbike' },
+};
+---
+
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  image={post.data.image}
+  type="article"
+  publishedTime={post.data.pubDate}
+  modifiedTime={post.data.updatedDate}
+  schema={articleSchema}
+>
+  <article>
+    <h1>{post.data.title}</h1>
+    <div class="post-meta">
+      Đăng ngày {post.data.pubDate.toLocaleDateString('vi-VN')}
+    </div>
+    <Content />
+  </article>
+</BaseLayout>

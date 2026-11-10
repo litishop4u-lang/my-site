@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
+---
+
+<BaseLayout
+  title="Trợ Lực Điện LKEbike - Nơi mua xe đạp điện trợ lực độc lạ"
+  description="trolucdien.vn chuyên cung cấp xe đạp điện trợ lực, xe điện gấp gọn và thời trang từ nhiều thương hiệu. Liên hệ hotline 0768 640 918 để nhận ưu đãi ngay!"
+>
+  <h1>Xe Đạp Điện Trợ Lực & Xe Điện Thời Trang | LKEbike</h1>
+  <p>LKEbike (trolucdien.vn) là shop chuyên cung cấp các dòng xe đạp điện trợ lực, xe điện gấp gọn bỏ cốp ô tô và xe điện thời trang độc lạ từ nhiều thương hiệu.
+Khách hàng ưu tiên lựa chọn chúng tôi vì:
+• Sản phẩm đón đầu xu hướng: Đầy đủ các phiên bản mở tốc mạnh mẽ, tích hợp công nghệ hiện đại (TCS, NFC, Pin Lithium cao cấp).
+• Tối ưu trải nghiệm: Xe vận hành bền bỉ, tiết kiệm điện năng, kiểu dáng thời trang khẳng định phong cách riêng.
+• Dịch vụ tận tâm: Chính sách bảo hành uy tín, đầy đủ phụ kiện thay thế và hỗ trợ tư vấn nhanh chóng qua Zalo/Hotline.</p>
+
+  <h2>Bài viết mới nhất</h2>
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+        <div class="post-meta">
+          {post.data.pubDate.toLocaleDateString('vi-VN')}
+        </div>
+        <p>{post.data.description}</p>
+      </li>
+    ))}
+  </ul>
+  <p><a href="/blog/">Xem tất cả bài viết</a></p>
+</BaseLayout>
