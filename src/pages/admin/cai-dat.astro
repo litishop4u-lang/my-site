@@ -15,6 +15,8 @@ const TEXT_FIELDS = [
   'hero_title',
   'hero_subtitle',
   'hero_text',
+  'messenger',
+  'work_hours',
 ] as const;
 const IMAGE_FIELDS = ['logo', 'hero_image'] as const;
 const MEDIA_PATTERN = /^\/media\/\?k=[a-z0-9\-/]+\.(jpg|png|webp|gif)$/;
@@ -83,6 +85,16 @@ const saved = Astro.url.searchParams.get('saved');
       <div class="adm-field">
         <label for="address">Địa chỉ</label>
         <input id="address" name="address" type="text" value={s.address ?? ''} />
+      </div>
+
+            <div class="adm-field">
+        <label for="messenger">Facebook Messenger (tên trang hoặc đường dẫn m.me)</label>
+        <input id="messenger" name="messenger" type="text" placeholder="vd: lkebike hoặc https://m.me/lkebike" value={s.messenger ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="work_hours">Giờ làm việc (hiện ở nút liên hệ nổi)</label>
+        <input id="work_hours" name="work_hours" type="text" placeholder="8:30 - 20:00" value={s.work_hours ?? ''} />
       </div>
 
       <div class="adm-field adm-span2">

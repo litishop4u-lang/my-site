@@ -1,0 +1,55 @@
+---
+import type { Settings } from '../lib/db';
+
+interface Props {
+  settings: Settings;
+}
+
+const { settings } = Astro.props;
+
+const phone = (settings.phone || '').trim();
+const zalo = (settings.zalo || '').trim();
+const hours = (settings.work_hours || '8:30 - 20:00').trim();
+
+function messengerLink(value: string): string {
+  const v = value.trim();
+  if (!v) return '';
+  if (/^https:\/\//i.test(v)) return v;
+  if (/^[A-Za-z0-9._-]{3,}$/.test(v)) return `https://m.me/${v}`;
+  return '';
+}
+
+const messenger = messengerLink(settings.messenger || '');
+
+type Item = { key: string; href: string; label: string; icon: string; external: boolean };
+
+const items: Item[] = [];
+if (messenger) {
+  items.push({ key: 'messenger', href: messenger, label: 'Facebook Messenger', icon: '/icons/messenger.svg', external: true });
+}
+if (zalo) {
+  items.push({ key: 'zalo', href: `https://zalo.me/${zalo.replace(/\D/g, '')}`, label: 'Zalo', icon: '/icons/zalo.svg', external: true });
+}
+if (phone) {
+  items.push({ key: 'phone', href: `tel:${phone.replace(/\s/g, '')}`, label: phone, icon: '/icons/phone.svg', external: false });
+}
+---
+
+{items.length > 0 && (
+  <div class="fc" role="group" aria-label="Liên hệ nhanh">
+    {items.map((item) => (
+      <a
+        class={`fc-item fc-${item.key}`}
+        href={item.href}
+        target={item.external ? '_blank' : undefined}
+        rel={item.external ? 'noopener' : undefined}
+      >
+        <span class="fc-icon"><img src={item.icon} alt="" width="36" height="36" /></span>
+        <span class="fc-text">
+          <strong>{item.label}</strong>
+          <small>({hours})</small>
+        </span>
+      </a>
+    ))}
+  </div>
+)}
