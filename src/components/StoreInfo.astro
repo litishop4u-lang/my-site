@@ -1,0 +1,74 @@
+---
+import type { Settings } from '../lib/db';
+
+interface Props {
+  settings: Settings;
+}
+
+const { settings } = Astro.props;
+
+const address = (settings.address || '').trim();
+const storeName = (settings.store_name || '').trim();
+const phone = (settings.phone || '').trim();
+const hours = (settings.work_hours || '').trim();
+
+function embedSrc(raw: string, addr: string): string {
+  const text = raw.trim();
+  const fromTag = text.match(/src\s*=\s*["']([^"']+)["']/i);
+  const candidate = (fromTag ? fromTag[1] : text).replace(/&amp;/g, '&');
+  if (/^https:\/\/www\.google\.com\/maps\/embed\?/i.test(candidate)) return candidate;
+  if (addr) return `https://www.google.com/maps?q=${encodeURIComponent(addr)}&hl=vi&z=16&output=embed`;
+  return '';
+}
+
+const mapSrc = embedSrc(settings.map_embed || '', address);
+const directionsUrl = address
+  ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`
+  : '';
+const policies = (settings.policies || '')
+  .split(/\r?\n/)
+  .map((line) => line.trim())
+  .filter(Boolean)
+  .slice(0, 12);
+---
+
+{address && (
+  <section class="side-box store-box">
+    <h2>Địa chỉ cửa hàng</h2>
+    <div class="store-body">
+      {storeName && <strong class="store-name">{storeName}</strong>}
+      <p class="store-addr">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" />
+          <circle cx="12" cy="9.5" r="2.5" />
+        </svg>
+        <a href={directionsUrl} target="_blank" rel="noopener">{address}</a>
+      </p>
+      {phone && (
+        <p class="store-line">Hotline: <a href={`tel:${phone.replace(/\s/g, '')}`}>{phone}</a></p>
+      )}
+      {hours && <p class="store-line">Giờ mở cửa: {hours}</p>}
+      {mapSrc && (
+        <div class="store-map">
+          <iframe
+            src={mapSrc}
+            title="Bản đồ cửa hàng"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            allowfullscreen
+          ></iframe>
+        </div>
+      )}
+      <a class="btn store-dir" href={directionsUrl} target="_blank" rel="noopener">Chỉ đường</a>
+    </div>
+  </section>
+)}
+
+{policies.length > 0 && (
+  <section class="side-box policy-box">
+    <h2>Chính sách bán hàng</h2>
+    <ul class="policy-list">
+      {policies.map((line) => <li>{line}</li>)}
+    </ul>
+  </section>
+)}

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import StoreInfo from '../../components/StoreInfo.astro';
 import { getProductBySlug, getRelatedProducts, getSettings, formatPrice } from '../../lib/db';
 import { parseImages, parseSpecs } from '../../lib/content';
 import { prepareDescription, htmlToPlainText } from '../../lib/rich';
@@ -165,6 +166,7 @@ const productSchema = product
           </div>
 
           <aside class="detail-side">
+          <StoreInfo settings={settings} />
             {relatedItems.length > 0 && (
               <section class="side-box">
                 <h2>Sản phẩm liên quan</h2>

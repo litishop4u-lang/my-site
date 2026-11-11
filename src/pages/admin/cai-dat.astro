@@ -15,6 +15,9 @@ const TEXT_FIELDS = [
   'hero_title',
   'hero_subtitle',
   'hero_text',
+  'store_name',
+  'map_embed',
+  'policies',
   'messenger',
   'work_hours',
 ] as const;
@@ -26,7 +29,7 @@ if (Astro.request.method === 'POST') {
   const entries: [string, string][] = [];
 
   for (const key of TEXT_FIELDS) {
-    entries.push([key, String(form.get(key) ?? '').trim().slice(0, 1000)]);
+    entries.push([key, String(form.get(key) ?? '').trim().slice(0, 3000)]);
   }
   for (const key of IMAGE_FIELDS) {
     const value = String(form.get(key) ?? '').trim();
@@ -85,6 +88,24 @@ const saved = Astro.url.searchParams.get('saved');
       <div class="adm-field">
         <label for="address">Địa chỉ</label>
         <input id="address" name="address" type="text" value={s.address ?? ''} />
+      </div>
+
+            <div class="adm-field">
+        <label for="store_name">Tên cửa hàng / chi nhánh (hiện ở mục Địa chỉ cửa hàng)</label>
+        <input id="store_name" name="store_name" type="text" placeholder="vd: Quận 5" value={s.store_name ?? ''} />
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="map_embed">Bản đồ Google Maps (không bắt buộc)</label>
+        <textarea id="map_embed" name="map_embed" rows="3" placeholder="Dán mã nhúng của Google Maps vào đây. Để trống thì bản đồ tự lấy theo Địa chỉ ở trên.">{s.map_embed ?? ''}</textarea>
+        <div class="adm-size">
+          <strong>Cách lấy:</strong> mở Google Maps, tìm đúng vị trí cửa hàng, bấm <strong>Chia sẻ</strong>, chọn tab <strong>Nhúng bản đồ</strong>, bấm <strong>Sao chép HTML</strong> rồi dán vào ô này. Nếu để trống, bản đồ sẽ tìm theo chữ trong ô Địa chỉ.
+        </div>
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="policies">Chính sách bán hàng (mỗi dòng là một ý)</label>
+        <textarea id="policies" name="policies" rows="6" placeholder="Miễn phí giao hàng trong bán kính 15km&#10;Hỗ trợ kĩ thuật suốt quá trình sử dụng&#10;Cam kết chính hãng 100%">{s.policies ?? ''}</textarea>
       </div>
 
             <div class="adm-field">

@@ -2206,3 +2206,124 @@ a {
     transition: none;
   }
 }
+
+/* ===== Địa chỉ cửa hàng và chính sách bán hàng ===== */
+.store-box,
+.policy-box {
+  background: var(--surface);
+  border: 1px solid #b3b8bf;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.store-box h2,
+.policy-box h2 {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  font-size: 1.05rem;
+  color: var(--text);
+  background: #d8dbdf;
+  border-bottom: 1px solid #b3b8bf;
+}
+
+.store-body {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+}
+
+.store-name {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.store-addr {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.store-addr svg {
+  flex: 0 0 18px;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.store-addr a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.store-addr a:hover {
+  text-decoration: underline;
+}
+
+.store-line {
+  margin: 0;
+  color: var(--muted);
+}
+
+.store-line a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.store-map {
+  aspect-ratio: 4 / 3;
+  margin-top: 0.25rem;
+  border: 1px solid #b3b8bf;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #d8dbdf;
+}
+
+.store-map iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.store-dir {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.policy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 1rem 0.8rem;
+}
+
+.policy-list li {
+  position: relative;
+  padding: 0.6rem 0 0.6rem 2rem;
+  line-height: 1.4;
+  border-bottom: 1px solid #d0d3d8;
+}
+
+.policy-list li:last-child {
+  border-bottom: 0;
+}
+
+.policy-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0.62rem;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-btn);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
