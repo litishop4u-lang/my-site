@@ -1434,34 +1434,42 @@ main.container {
   }
 }
 
-/* ===== GIAO DIỆN TỐI, MÀU LẠNH (chỉ đổi màu) ===== */
+/* ===== GIAO DIỆN XÁM LÔNG CHUỘT ===== */
 :root {
-  --accent: #5b9cff;
-  --accent-btn: #2f6fe0;
-  --accent-btn-hover: #3b7bf0;
-  --price: #6ec1ff;
+  --bg: #cdd0d5;
+  --bg-soft: #c2c5cb;
+  --surface: #e7e9ec;
+  --surface-2: #f1f2f4;
+  --line: #b3b8bf;
 
-  --navy: #e4e9f2;
-  --navy-dark: #0b0d11;
+  --text: #23262b;
+  --muted: #4a5058;
+
+  --header-bg: #3f434a;
+  --footer-bg: #373a40;
+  --footer-bottom: #2c2f34;
+
+  --accent: #20528f;
+  --accent-btn: #2f6db5;
+  --accent-btn-hover: #255b9c;
+  --accent-on-dark: #9cc4f0;
+  --price: #1a4a85;
+
+  --navy: #23262b;
+  --navy-dark: #373a40;
   --red: var(--accent);
+  --color-bg: var(--bg);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--line);
 
-  --color-bg: #111317;
-  --color-text: #e8ebf1;
-  --color-muted: #9aa3b2;
-  --color-border: #2c323d;
-
-  --surface: #1b1f26;
-  --surface-2: #242934;
-  --surface-news: #151920;
-  --line: #2c323d;
-
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--bg);
+  color: var(--text);
 }
 
 ::selection {
@@ -1475,22 +1483,20 @@ a {
 
 /* ----- Đầu trang ----- */
 .site-header {
-  background: #0c0e12;
-  border-bottom: 1px solid #262c36;
-  box-shadow:
-    0 1px 0 rgba(91, 156, 255, 0.35),
-    0 8px 24px rgba(0, 0, 0, 0.35);
+  background: var(--header-bg);
+  border-bottom: 2px solid #4a86cc;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 
 .site-header nav a:hover,
 .site-header nav a[aria-current='page'] {
-  color: #7db2ff;
+  color: var(--accent-on-dark);
 }
 
 .nav-toggle:hover,
 .nav-toggle.active,
 .nav-dropdown.open .nav-toggle {
-  color: #7db2ff;
+  color: var(--accent-on-dark);
 }
 
 .header-phone {
@@ -1498,19 +1504,33 @@ a {
   color: #ffffff;
 }
 
+.header-phone:hover {
+  background: #3a7ac8;
+}
+
 .dropdown-menu {
   background: var(--surface-2);
-  border-top: 3px solid var(--accent);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  border-top: 3px solid var(--accent-btn);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
+}
+
+.dropdown-menu:has(li:nth-child(8)) {
+  min-width: 460px;
+  columns: 2;
+  column-gap: 0;
+}
+
+.dropdown-menu li {
+  break-inside: avoid;
 }
 
 .site-header .dropdown-menu a {
-  color: #e4e9f2;
+  color: var(--text);
 }
 
 .site-header .dropdown-menu a:hover {
-  background: #2e3441;
-  color: #8fbcff;
+  background: var(--bg);
+  color: var(--accent);
 }
 
 /* ----- Nút bấm ----- */
@@ -1524,82 +1544,86 @@ a {
 }
 
 .btn-navy {
-  background: #2a3040;
-  color: #e8ebf1;
-  border: 1px solid #3a4150;
+  background: #4a4f57;
+  color: #ffffff;
+  border: 0;
 }
 
 .btn-navy:hover {
-  background: #343c50;
+  background: #3a3e45;
 }
 
 .btn-outline {
   background: transparent;
-  color: #e8ebf1;
-  border: 2px solid #4a5366;
+  color: var(--text);
+  border: 2px solid #4a4f57;
 }
 
 .btn-outline:hover {
-  background: #e8ebf1;
-  color: #111317;
+  background: #4a4f57;
+  color: #ffffff;
 }
 
 /* ----- Banner ----- */
 .banner-frame::before {
-  background: #1f2b44;
-  opacity: 0.85;
+  background: #aeb3ba;
+  opacity: 0.9;
 }
 
 .banner-frame::after {
-  background: var(--accent-btn);
-  opacity: 0.25;
+  background: #9aa0a8;
+  opacity: 0.7;
 }
 
 .banner-track {
-  background: #0c0e12;
+  background: #b5b9bf;
   box-shadow:
-    0 26px 50px rgba(0, 0, 0, 0.6),
-    0 10px 18px rgba(0, 0, 0, 0.45);
+    0 22px 44px rgba(35, 38, 43, 0.28),
+    0 8px 16px rgba(35, 38, 43, 0.18);
 }
 
 .banner-track::after {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 32%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 30%);
 }
 
 .banner-nav {
-  background: rgba(12, 14, 18, 0.6);
+  background: rgba(40, 43, 48, 0.55);
 }
 
 .banner-nav:hover {
-  background: rgba(12, 14, 18, 0.9);
+  background: rgba(40, 43, 48, 0.85);
+}
+
+.banner-dot {
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .banner-dot.active {
-  background: var(--accent);
+  background: var(--accent-btn);
   box-shadow: 0 0 0 2px #ffffff;
 }
 
 /* ----- Tiêu đề mục dạng ruy băng ----- */
 .ribbon {
-  color: #eef2f9;
+  color: var(--text);
 }
 
 .ribbon::before {
-  background: #4a5a78;
+  background: #6b717a;
 }
 
 .ribbon::after {
-  background: var(--color-bg);
+  background: var(--bg);
 }
 
 .news-section .ribbon::after {
-  background: var(--surface-news);
+  background: var(--bg-soft);
 }
 
 .section-title::before,
 .section-title::after {
-  background: #3a4252;
+  background: #9ba1a9;
 }
 
 .section-more {
@@ -1608,16 +1632,16 @@ a {
 
 /* ----- Sản phẩm ----- */
 .product-img {
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 .product-img .img-hover {
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 .product h3,
 .product h3 a {
-  color: #e8ebf1;
+  color: var(--text);
 }
 
 .product h3 a:hover {
@@ -1629,54 +1653,54 @@ a {
 }
 
 .price del {
-  color: #7a8393;
+  color: #7a808a;
 }
 
 .empty-note {
-  color: var(--color-muted);
+  color: var(--muted);
 }
 
 /* ----- Tin tức ----- */
 .news-section {
-  background: var(--surface-news);
+  background: var(--bg-soft);
 }
 
 .news-card {
   background: var(--surface);
-  border: 1px solid #272d38;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+  border: 1px solid #c4c8ce;
+  box-shadow: 0 8px 22px rgba(35, 38, 43, 0.12);
 }
 
 .news-card .thumb {
-  background: linear-gradient(135deg, #1b2433, #2d3b57);
+  background: linear-gradient(135deg, #aeb3ba, #8e949c);
 }
 
 .news-card h3 a {
-  color: #eef1f7;
+  color: var(--text);
 }
 
 .link-more {
-  color: #cfd8e8;
+  color: var(--accent);
 }
 
 /* ----- Chân trang ----- */
 .site-footer {
-  background: #0b0d11;
-  color: #aab2c0;
-  border-top: 1px solid #262c36;
+  background: var(--footer-bg);
+  color: #c1c5cb;
+  border-top: 2px solid #4a86cc;
 }
 
 .footer-grid h4 {
   color: #ffffff;
-  border-bottom-color: rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.18);
 }
 
 .footer-grid a {
-  color: #aab2c0;
+  color: #c1c5cb;
 }
 
 .footer-grid a:hover {
-  color: #7db2ff;
+  color: var(--accent-on-dark);
 }
 
 .footer-brand {
@@ -1684,87 +1708,87 @@ a {
 }
 
 .footer-bottom {
-  background: #07080a;
-  color: #7c8594;
+  background: var(--footer-bottom);
+  color: #a3a9b1;
 }
 
 /* ----- Trang chi tiết sản phẩm ----- */
 .breadcrumb,
 .breadcrumb a {
-  color: var(--color-muted);
+  color: var(--muted);
 }
 
 .page-title,
 .product-info h1 {
-  color: #f2f5fa;
+  color: var(--text);
 }
 
 .gallery-main {
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 .gallery-nav {
-  background: rgba(12, 14, 18, 0.6);
+  background: rgba(40, 43, 48, 0.55);
 }
 
 .gallery-nav:hover {
-  background: rgba(12, 14, 18, 0.9);
+  background: rgba(40, 43, 48, 0.85);
 }
 
 .gallery-thumb {
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 .gallery-thumb.active {
-  border-color: var(--accent);
+  border-color: var(--accent-btn);
 }
 
 .spec-box {
   background: var(--surface);
-  border-color: #343b48;
+  border-color: #aab0b8;
 }
 
 .spec-box h2 {
-  background: #242a35;
-  color: #eef1f7;
+  background: #d8dbdf;
+  color: var(--text);
 }
 
 .spec-table th,
 .spec-table td {
-  border-color: #323946;
+  border-color: #c2c6cc;
 }
 
 .spec-table th {
-  background: #20252e;
-  color: #c7cfdc;
+  background: #e0e2e6;
+  color: #3a3f46;
 }
 
 .spec-table td {
-  color: #e8ebf1;
+  color: var(--text);
 }
 
 .product-description > h2 {
-  color: #f2f5fa;
-  border-bottom-color: var(--accent);
+  color: var(--text);
+  border-bottom-color: var(--accent-btn);
 }
 
 .rich h2,
 .rich h3,
 .rich h4 {
-  color: #f2f5fa;
+  color: var(--text);
 }
 
 .rich blockquote {
-  background: var(--surface);
-  border-left-color: var(--accent);
+  background: #e0e2e6;
+  border-left-color: var(--accent-btn);
 }
 
 .rich a {
-  color: #7db2ff;
+  color: var(--accent);
 }
 
 .side-box h2 {
-  color: #f2f5fa;
+  color: var(--text);
   border-bottom-color: var(--line);
 }
 
@@ -1773,11 +1797,11 @@ a {
 }
 
 .side-thumb {
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 .side-name {
-  color: #e8ebf1;
+  color: var(--text);
 }
 
 .side-name:hover {
