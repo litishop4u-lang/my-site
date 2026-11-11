@@ -2,12 +2,13 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProductCard from '../components/ProductCard.astro';
 import { getCollection } from 'astro:content';
-import { getSettings, getCategories, getProducts } from '../lib/db';
+import { getSettings, getCategories, getProducts, getBanners } from '../lib/db';
 
-const [settings, categories, products] = await Promise.all([
+const [settings, categories, products, banners] = await Promise.all([
   getSettings(),
   getCategories(),
   getProducts({ limit: 200 }),
+  getBanners(),
 ]);
 
 const posts = (await getCollection('blog'))
@@ -27,17 +28,73 @@ const heroImage = settings.hero_image || '';
 const pageTitle = [siteName, settings.hero_subtitle].filter(Boolean).join(' - ');
 const pageDescription =
   settings.hero_text || 'Chuyên cung cấp sản phẩm chính hãng, giá tốt, bảo hành rõ ràng.';
+const intervalMs = Math.min(30, Math.max(2, Number(settings.banner_interval) || 5)) * 1000;
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription} wide={true}>
-  <section class="hero" style={heroImage ? `--hero-image: url('${heroImage}')` : undefined}>
-    <div class="container">
-      <h1>{settings.hero_title || siteName}</h1>
-      {settings.hero_subtitle && <p class="sub">{settings.hero_subtitle}</p>}
-      {settings.hero_text && <p>{settings.hero_text}</p>}
-      <a class="btn" href="/lien-he/">Liên hệ ngay ›</a>
-    </div>
-  </section>
+  {banners.length > 0 ? (
+    <>
+      <section class="banner-slider" data-banner data-interval={intervalMs} aria-label="Banner">
+        <div class="banner-track">
+          {banners.map((b, i) => (
+            <div class:list={['banner-slide', { active: i === 0 }]} data-slide>
+              {b.link_url ? (
+                <a href={b.link_url}>
+                  <img
+                    src={b.image}
+                    alt={b.alt || ''}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : undefined}
+                  />
+                </a>
+              ) : (
+                <img
+                  src={b.image}
+                  alt={b.alt || ''}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={i === 0 ? 'high' : undefined}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        {banners.length > 1 && (
+          <>
+            <button type="button" class="banner-nav prev" data-prev aria-label="Banner trước">‹</button>
+            <button type="button" class="banner-nav next" data-next aria-label="Banner sau">›</button>
+            <div class="banner-dots">
+              {banners.map((b, i) => (
+                <button
+                  type="button"
+                  class:list={['banner-dot', { active: i === 0 }]}
+                  data-dot
+                  aria-label={`Xem banner ${i + 1}`}
+                ></button>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      <section class="intro">
+        <div class="container">
+          <h1>{settings.hero_title || siteName}</h1>
+          {settings.hero_subtitle && <p class="sub">{settings.hero_subtitle}</p>}
+          {settings.hero_text && <p class="intro-text">{settings.hero_text}</p>}
+          <a class="btn" href="/lien-he/">Liên hệ ngay ›</a>
+        </div>
+      </section>
+    </>
+  ) : (
+    <section class="hero" style={heroImage ? `--hero-image: url('${heroImage}')` : undefined}>
+      <div class="container">
+        <h1>{settings.hero_title || siteName}</h1>
+        {settings.hero_subtitle && <p class="sub">{settings.hero_subtitle}</p>}
+        {settings.hero_text && <p>{settings.hero_text}</p>}
+        <a class="btn" href="/lien-he/">Liên hệ ngay ›</a>
+      </div>
+    </section>
+  )}
 
   {sections.length === 0 && (
     <section class="section">
@@ -83,4 +140,6 @@ const pageDescription =
       </div>
     </section>
   )}
+
+  <script is:inline defer src="/banner.js?v=1"></script>
 </BaseLayout>

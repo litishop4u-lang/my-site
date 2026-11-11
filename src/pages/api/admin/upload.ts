@@ -34,10 +34,20 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Ảnh quá lớn (tối đa 8 MB).' }, 400);
   }
 
-  const key = `products/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-  await env.IMAGES_BUCKET.put(key, await file.arrayBuffer(), {
-    httpMetadata: { contentType: file.type },
-  });
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  const hash = [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 24);
 
-  return json({ url: `/media/?k=${key}` });
+  const key = `img/${hash}.${ext}`;
+  const existing = await env.IMAGES_BUCKET.head(key);
+  if (!existing) {
+    await env.IMAGES_BUCKET.put(key, buffer, {
+      httpMetadata: { contentType: file.type },
+    });
+  }
+
+  return json({ url: `/media/?k=${key}`, existed: !!existing });
 };

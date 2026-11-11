@@ -142,6 +142,7 @@ const path = Astro.url.pathname;
           <a href="/admin/san-pham/" aria-current={path.startsWith('/admin/san-pham/') ? 'page' : undefined}>Sản phẩm</a>
           <a href="/admin/danh-muc/" aria-current={path.startsWith('/admin/danh-muc/') ? 'page' : undefined}>Danh mục</a>
           <a href="/admin/thuong-hieu/" aria-current={path.startsWith('/admin/thuong-hieu/') ? 'page' : undefined}>Thương hiệu</a>
+          <a href="/admin/banner/" aria-current={path.startsWith('/admin/banner/') ? 'page' : undefined}>Banner</a>
           <a href="/admin/cai-dat/" aria-current={path.startsWith('/admin/cai-dat/') ? 'page' : undefined}>Cài đặt</a>
           <a href="/" target="_blank" rel="noopener">Xem website</a>
         </nav>
@@ -153,5 +154,6 @@ const path = Astro.url.pathname;
     <main class="adm-main">
       <slot />
     </main>
+    <script is:inline defer src="/media-picker.js?v=1"></script>
   </body>
 </html>

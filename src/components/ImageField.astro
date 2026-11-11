@@ -4,9 +4,10 @@ interface Props {
   label: string;
   value?: string;
   maxSize?: number;
+  hint?: string;
 }
 
-const { name, label, value = '', maxSize = 1600 } = Astro.props;
+const { name, label, value = '', maxSize = 1600, hint = '' } = Astro.props;
 ---
 
 <div class="adm-field adm-span2" data-image-field data-max={maxSize}>
@@ -15,8 +16,12 @@ const { name, label, value = '', maxSize = 1600 } = Astro.props;
     <img class="adm-image-preview" data-preview alt="Ảnh xem trước" src={value || undefined} hidden={!value} />
     <div>
       <input type="file" accept="image/*" data-file />
+      {hint && <div class="adm-size"><strong>Kích thước chuẩn:</strong> {hint}</div>}
       <div class="adm-hint" data-status></div>
-      <button class="adm-icon-btn danger" type="button" data-remove hidden={!value}>Xoá ảnh</button>
+      <div class="pf-actions">
+        <button class="adm-icon-btn" type="button" data-pick>Chọn từ thư viện ảnh đã tải lên</button>
+        <button class="adm-icon-btn danger" type="button" data-remove hidden={!value}>Xoá ảnh</button>
+      </div>
     </div>
   </div>
   <input type="hidden" name={name} value={value} data-value />

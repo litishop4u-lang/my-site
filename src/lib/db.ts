@@ -106,3 +106,23 @@ export async function getRelatedProducts(
     return [];
   }
 }
+
+export type Banner = {
+  id: number;
+  image: string;
+  alt: string | null;
+  link_url: string | null;
+  sort_order: number;
+  is_active: number;
+};
+
+export async function getBanners(): Promise<Banner[]> {
+  try {
+    const { results } = await env.DB.prepare(
+      'SELECT * FROM banners WHERE is_active = 1 ORDER BY sort_order, id',
+    ).all<Banner>();
+    return results;
+  } catch {
+    return [];
+  }
+}

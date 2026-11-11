@@ -59,9 +59,10 @@ const saved = Astro.url.searchParams.get('saved');
 
       <ImageField
         name="logo"
-        label="Logo (hiện ở đầu trang trên nền xanh đậm, nên dùng ảnh nền trong suốt, màu sáng)"
+        label="Logo (hiện ở đầu trang trên nền xanh đậm)"
         value={s.logo ?? ''}
         maxSize={800}
+        hint="480 × 150 px (tỉ lệ 3,2:1), PNG hoặc WebP nền trong suốt, chữ và hình màu sáng."
       />
 
       <div class="adm-field">
@@ -85,25 +86,26 @@ const saved = Astro.url.searchParams.get('saved');
       </div>
 
       <div class="adm-field adm-span2">
-        <label for="hero_title">Banner trang chủ: tiêu đề lớn</label>
+        <label for="hero_title">Tiêu đề trang chủ (thẻ H1, hiện dưới banner)</label>
         <input id="hero_title" name="hero_title" type="text" value={s.hero_title ?? ''} />
       </div>
 
       <div class="adm-field adm-span2">
-        <label for="hero_subtitle">Banner trang chủ: dòng phụ (nên chứa từ khóa chính)</label>
+        <label for="hero_subtitle">Dòng phụ (nên chứa từ khóa chính)</label>
         <input id="hero_subtitle" name="hero_subtitle" type="text" value={s.hero_subtitle ?? ''} />
       </div>
 
       <div class="adm-field adm-span2">
-        <label for="hero_text">Banner trang chủ: đoạn giới thiệu (cũng là mô tả hiện trên Google)</label>
+        <label for="hero_text">Đoạn giới thiệu (cũng là mô tả hiện trên Google)</label>
         <textarea id="hero_text" name="hero_text" rows="3">{s.hero_text ?? ''}</textarea>
       </div>
 
       <ImageField
         name="hero_image"
-        label="Ảnh nền banner trang chủ (nên dùng ảnh ngang, rộng)"
+        label="Ảnh nền banner dự phòng (chỉ dùng khi chưa có banner nào ở mục Banner)"
         value={s.hero_image ?? ''}
         maxSize={2000}
+        hint="1920 × 600 px (tỉ lệ 16:5), JPG hoặc WebP, dưới khoảng 300 KB."
       />
     </div>
 
@@ -111,76 +113,6 @@ const saved = Astro.url.searchParams.get('saved');
       <button id="submit-btn" class="adm-btn" type="submit">Lưu cài đặt</button>
     </div>
   </form>
+
+  <script is:inline defer src="/admin-image-field.js?v=1"></script>
 </AdminLayout>
-
-<script is:inline>
-  (function () {
-    var submitBtn = document.getElementById('submit-btn');
-
-    async function compress(file, maxSize) {
-      if (file.type === 'image/gif') return file;
-      var bitmap = await createImageBitmap(file);
-      var scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
-      var w = Math.round(bitmap.width * scale);
-      var h = Math.round(bitmap.height * scale);
-      var canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
-      var blob = await new Promise(function (resolve) {
-        canvas.toBlob(resolve, 'image/webp', 0.85);
-      });
-      if (!blob) return file;
-      return new File([blob], 'image.webp', { type: 'image/webp' });
-    }
-
-    document.querySelectorAll('[data-image-field]').forEach(function (box) {
-      var fileInput = box.querySelector('[data-file]');
-      var hidden = box.querySelector('[data-value]');
-      var preview = box.querySelector('[data-preview]');
-      var statusEl = box.querySelector('[data-status]');
-      var removeBtn = box.querySelector('[data-remove]');
-      var maxSize = Number(box.getAttribute('data-max')) || 1600;
-
-      function showImage(url) {
-        hidden.value = url || '';
-        if (url) {
-          preview.src = url;
-          preview.hidden = false;
-          removeBtn.hidden = false;
-        } else {
-          preview.removeAttribute('src');
-          preview.hidden = true;
-          removeBtn.hidden = true;
-        }
-      }
-
-      fileInput.addEventListener('change', async function () {
-        var file = fileInput.files && fileInput.files[0];
-        if (!file) return;
-        statusEl.textContent = 'Đang tải ảnh lên...';
-        submitBtn.disabled = true;
-        try {
-          var small = await compress(file, maxSize);
-          var data = new FormData();
-          data.append('file', small);
-          var res = await fetch('/api/admin/upload/', { method: 'POST', body: data });
-          var result = await res.json();
-          if (!res.ok) throw new Error(result.error || 'Tải ảnh thất bại.');
-          showImage(result.url);
-          statusEl.textContent = 'Đã tải ảnh lên. Nhớ bấm Lưu cài đặt bên dưới.';
-        } catch (err) {
-          statusEl.textContent = 'Lỗi: ' + (err && err.message ? err.message : 'không tải được ảnh.');
-        } finally {
-          submitBtn.disabled = false;
-          fileInput.value = '';
-        }
-      });
-
-      removeBtn.addEventListener('click', function () {
-        showImage('');
-        statusEl.textContent = '';
-      });
-    });
-  })();
-</script>

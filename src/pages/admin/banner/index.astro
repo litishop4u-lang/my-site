@@ -1,0 +1,180 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+import { IMAGE_RE } from '../../../lib/content';
+import { getSettings } from '../../../lib/db';
+
+export const prerender = false;
+
+type Row = {
+  id: number;
+  image: string;
+  alt: string | null;
+  link_url: string | null;
+  sort_order: number;
+  is_active: number;
+};
+
+function cleanLink(value: string): string {
+  const v = value.trim();
+  if (!v) return '';
+  if (/^\/(?!\/)/.test(v) || /^https:\/\//i.test(v)) return v.slice(0, 500);
+  return '';
+}
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+
+  if (action === 'add') {
+    const images = form
+      .getAll('image')
+      .map((v) => String(v))
+      .filter((u) => IMAGE_RE.test(u));
+    const alt = String(form.get('alt') ?? '').trim().slice(0, 200);
+    const link = cleanLink(String(form.get('link_url') ?? ''));
+
+    if (images.length === 0) return Astro.redirect('/admin/banner/?msg=noimage');
+
+    const maxRow = await env.DB.prepare(
+      'SELECT COALESCE(MAX(sort_order), 0) AS n FROM banners',
+    ).first<{ n: number }>();
+    let order = (maxRow?.n ?? 0) + 1;
+
+    await env.DB.batch(
+      images.map((image) =>
+        env.DB.prepare(
+          'INSERT INTO banners (image, alt, link_url, sort_order) VALUES (?, ?, ?, ?)',
+        ).bind(image, alt || null, link || null, order++),
+      ),
+    );
+    return Astro.redirect('/admin/banner/?msg=saved');
+  }
+
+  if (action === 'update' || action === 'delete') {
+    const id = Number(form.get('id'));
+    if (Number.isInteger(id) && id > 0) {
+      if (action === 'update') {
+        const alt = String(form.get('alt') ?? '').trim().slice(0, 200);
+        const link = cleanLink(String(form.get('link_url') ?? ''));
+        const order = parseInt(String(form.get('sort_order') ?? '0'), 10) || 0;
+        const active = form.get('is_active') ? 1 : 0;
+        await env.DB.prepare(
+          'UPDATE banners SET alt = ?, link_url = ?, sort_order = ?, is_active = ? WHERE id = ?',
+        )
+          .bind(alt || null, link || null, order, active, id)
+          .run();
+      } else {
+        await env.DB.prepare('DELETE FROM banners WHERE id = ?').bind(id).run();
+      }
+    }
+    return Astro.redirect('/admin/banner/?msg=saved');
+  }
+
+  if (action === 'settings') {
+    const seconds = Math.min(30, Math.max(2, parseInt(String(form.get('banner_interval') ?? '5'), 10) || 5));
+    await env.DB.prepare(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    )
+      .bind('banner_interval', String(seconds))
+      .run();
+    return Astro.redirect('/admin/banner/?msg=saved');
+  }
+
+  return Astro.redirect('/admin/banner/');
+}
+
+const msg = Astro.url.searchParams.get('msg');
+const settings = await getSettings();
+const interval = Math.min(30, Math.max(2, Number(settings.banner_interval) || 5));
+
+let rows: Row[] = [];
+try {
+  const result = await env.DB.prepare('SELECT * FROM banners ORDER BY sort_order, id').all<Row>();
+  rows = result.results;
+} catch {
+  rows = [];
+}
+---
+
+<AdminLayout title="Banner trang chủ">
+  <h1>Banner trang chủ</h1>
+
+  {msg === 'saved' && <div class="adm-flash">Đã lưu.</div>}
+  {msg === 'noimage' && <div class="adm-error">Vui lòng chọn ít nhất một ảnh banner.</div>}
+
+  <form method="post" class="adm-form" id="banner-add">
+    <input type="hidden" name="action" value="add" />
+    <div class="adm-form-grid">
+      <div class="adm-field adm-span2">
+        <label>Thêm banner mới (chọn được nhiều ảnh cùng lúc)</label>
+        <div id="bn-preview" class="bn-preview"></div>
+        <input id="bn-file" type="file" accept="image/*" multiple />
+        <div class="adm-size">
+          <strong>Kích thước chuẩn:</strong> 1920 × 600 px (tỉ lệ 16:5), JPG hoặc WebP, dưới khoảng 300 KB.
+          Trên điện thoại banner được cắt còn tỉ lệ 2:1, nên hãy đặt chữ và nội dung quan trọng trong vùng giữa rộng khoảng 1200 px.
+        </div>
+        <div class="pf-actions">
+          <button id="bn-pick" class="adm-icon-btn" type="button">Chọn từ thư viện ảnh đã tải lên</button>
+        </div>
+        <div id="bn-status" class="adm-hint"></div>
+        <div id="bn-hidden"></div>
+      </div>
+
+      <div class="adm-field">
+        <label for="alt">Mô tả ảnh (tốt cho SEO, áp dụng cho các ảnh vừa chọn)</label>
+        <input id="alt" name="alt" type="text" />
+      </div>
+
+      <div class="adm-field">
+        <label for="link_url">Đường dẫn khi bấm vào banner (không bắt buộc)</label>
+        <input id="link_url" name="link_url" type="text" placeholder="/danh-muc/xe-dap-dien-gap-gon/" />
+      </div>
+    </div>
+
+    <div class="adm-actions">
+      <button id="bn-submit" class="adm-btn" type="submit">+ Thêm banner</button>
+    </div>
+  </form>
+
+  <h2 class="bn-title">Danh sách banner ({rows.length})</h2>
+
+  <div class="adm-list">
+    {rows.length === 0 && (
+      <p class="adm-empty">Chưa có banner nào. Trang chủ đang dùng khối banner mặc định.</p>
+    )}
+    {rows.map((b) => (
+      <form method="post" class="bn-row">
+        <input type="hidden" name="id" value={b.id} />
+        <img class="bn-thumb" src={b.image} alt="" loading="lazy" />
+        <div class="bn-fields">
+          <input name="alt" type="text" placeholder="Mô tả ảnh" value={b.alt ?? ''} />
+          <input name="link_url" type="text" placeholder="Đường dẫn khi bấm (không bắt buộc)" value={b.link_url ?? ''} />
+        </div>
+        <input name="sort_order" type="number" value={b.sort_order} title="Thứ tự (số nhỏ hiện trước)" />
+        <label class="adm-check"><input type="checkbox" name="is_active" checked={b.is_active === 1} /> Hiện</label>
+        <div class="btns">
+          <button class="adm-icon-btn" type="submit" name="action" value="update">Lưu</button>
+          <button
+            class="adm-icon-btn danger"
+            type="submit"
+            name="action"
+            value="delete"
+            onclick="return confirm('Xoá banner này?')"
+          >Xoá</button>
+        </div>
+      </form>
+    ))}
+  </div>
+
+  <form method="post" class="adm-add bn-settings">
+    <input type="hidden" name="action" value="settings" />
+    <div>
+      <label for="banner_interval">Thời gian chuyển banner (giây, từ 2 đến 30)</label>
+      <input id="banner_interval" name="banner_interval" type="number" min="2" max="30" value={interval} />
+    </div>
+    <button class="adm-btn" type="submit">Lưu thời gian</button>
+  </form>
+
+  <script is:inline defer src="/admin-banner.js?v=1"></script>
+</AdminLayout>

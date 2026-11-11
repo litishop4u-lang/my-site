@@ -1154,3 +1154,136 @@ main.container {
     width: 100%;
   }
 }
+
+/* ===== Banner trang chủ tự chạy ===== */
+.banner-slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #14142b;
+}
+
+.banner-track {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+}
+
+.banner-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+
+.banner-slide.active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.banner-slide a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.banner-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  padding: 0 0 4px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(20, 20, 43, 0.5);
+  color: #ffffff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-nav:hover {
+  background: rgba(20, 20, 43, 0.85);
+}
+
+.banner-nav.prev {
+  left: 16px;
+}
+
+.banner-nav.next {
+  right: 16px;
+}
+
+.banner-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.banner-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.banner-dot.active {
+  background: var(--red);
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.intro {
+  text-align: center;
+  padding: 2.5rem 0 0.5rem;
+}
+
+.intro h1 {
+  margin: 0 0 0.4rem;
+  color: var(--navy);
+  text-transform: uppercase;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+}
+
+.intro .sub {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: var(--color-muted);
+}
+
+.intro .intro-text {
+  max-width: 720px;
+  margin: 0 auto 1.25rem;
+  color: var(--color-text);
+}
+
+@media (max-width: 720px) {
+  .banner-track {
+    aspect-ratio: 2 / 1;
+  }
+
+  .banner-nav {
+    display: none;
+  }
+}

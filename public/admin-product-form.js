@@ -215,6 +215,20 @@
     });
   });
 
+    document.getElementById('pf-pick-library').addEventListener('click', () => {
+    window.MediaPicker.open({
+      multiple: true,
+      maxSize: 1600,
+      onSelect: (urls) => {
+        for (const url of urls) {
+          if (state.images.length >= MAX_IMAGES) break;
+          if (!state.images.includes(url)) state.images.push(url);
+        }
+        renderGallery();
+      },
+    });
+  });
+
   /* ===== Thông số kỹ thuật ===== */
   function renderSpecs() {
     specsEl.textContent = '';
@@ -397,7 +411,18 @@
     saveRange();
   });
 
-  document.getElementById('ed-img').addEventListener('click', () => edImages.click());
+  document.getElementById('ed-img').addEventListener('click', () => {
+    saveRange();
+    window.MediaPicker.open({
+      multiple: true,
+      maxSize: 1600,
+      onSelect: (urls) => {
+        urls.forEach((url) => {
+          insertHtml('<figure data-size="l"><img src="' + url + '" alt=""></figure><p><br></p>');
+        });
+      },
+    });
+  });
   document.getElementById('ed-video').addEventListener('click', () => edVideo.click());
 
   document.getElementById('ed-yt').addEventListener('click', () => {
