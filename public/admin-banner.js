@@ -98,6 +98,10 @@
   });
 
   pickBtn.addEventListener('click', function () {
+    if (!window.MediaPicker) {
+      alert('Thư viện ảnh chưa được cài. Hãy dùng nút "Chọn tệp" để tải ảnh lên.');
+      return;
+    }
     window.MediaPicker.open({
       multiple: true,
       maxSize: 2000,

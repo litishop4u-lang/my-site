@@ -4,7 +4,7 @@ import ProductCard from '../components/ProductCard.astro';
 import { getCollection } from 'astro:content';
 import { getSettings, getCategories, getProducts, getBanners } from '../lib/db';
 
-const [settings, categories, products, banners] = await Promise.all([
+const [settings, categories, products, dbBanners] = await Promise.all([
   getSettings(),
   getCategories(),
   getProducts({ limit: 200 }),
@@ -29,20 +29,29 @@ const pageTitle = [siteName, settings.hero_subtitle].filter(Boolean).join(' - ')
 const pageDescription =
   settings.hero_text || 'Chuyên cung cấp sản phẩm chính hãng, giá tốt, bảo hành rõ ràng.';
 const intervalMs = Math.min(30, Math.max(2, Number(settings.banner_interval) || 5)) * 1000;
+
+const banners =
+  dbBanners.length > 0
+    ? dbBanners.map((b) => ({ image: b.image, alt: b.alt || siteName, link: b.link_url || '' }))
+    : heroImage
+      ? [{ image: heroImage, alt: siteName, link: '' }]
+      : [];
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription} wide={true}>
-  {banners.length > 0 ? (
-    <>
-      <section class="banner-slider" data-banner data-interval={intervalMs} aria-label="Banner">
+  <h1 class="sr-only">{settings.hero_title || siteName}</h1>
+
+  {banners.length > 0 && (
+    <section class="banner-slider" data-banner data-interval={intervalMs} aria-label="Banner">
+      <div class="banner-frame" data-frame>
         <div class="banner-track">
           {banners.map((b, i) => (
             <div class:list={['banner-slide', { active: i === 0 }]} data-slide>
-              {b.link_url ? (
-                <a href={b.link_url}>
+              {b.link ? (
+                <a href={b.link}>
                   <img
                     src={b.image}
-                    alt={b.alt || ''}
+                    alt={b.alt}
                     loading={i === 0 ? 'eager' : 'lazy'}
                     fetchpriority={i === 0 ? 'high' : undefined}
                   />
@@ -50,7 +59,7 @@ const intervalMs = Math.min(30, Math.max(2, Number(settings.banner_interval) || 
               ) : (
                 <img
                   src={b.image}
-                  alt={b.alt || ''}
+                  alt={b.alt}
                   loading={i === 0 ? 'eager' : 'lazy'}
                   fetchpriority={i === 0 ? 'high' : undefined}
                 />
@@ -74,24 +83,6 @@ const intervalMs = Math.min(30, Math.max(2, Number(settings.banner_interval) || 
             </div>
           </>
         )}
-      </section>
-
-      <section class="intro">
-        <div class="container">
-          <h1>{settings.hero_title || siteName}</h1>
-          {settings.hero_subtitle && <p class="sub">{settings.hero_subtitle}</p>}
-          {settings.hero_text && <p class="intro-text">{settings.hero_text}</p>}
-          <a class="btn" href="/lien-he/">Liên hệ ngay ›</a>
-        </div>
-      </section>
-    </>
-  ) : (
-    <section class="hero" style={heroImage ? `--hero-image: url('${heroImage}')` : undefined}>
-      <div class="container">
-        <h1>{settings.hero_title || siteName}</h1>
-        {settings.hero_subtitle && <p class="sub">{settings.hero_subtitle}</p>}
-        {settings.hero_text && <p>{settings.hero_text}</p>}
-        <a class="btn" href="/lien-he/">Liên hệ ngay ›</a>
       </div>
     </section>
   )}
@@ -141,5 +132,5 @@ const intervalMs = Math.min(30, Math.max(2, Number(settings.banner_interval) || 
     </section>
   )}
 
-  <script is:inline defer src="/banner.js?v=1"></script>
+  <script is:inline defer src="/banner.js?v=2"></script>
 </BaseLayout>

@@ -837,3 +837,109 @@
     grid-template-columns: 1fr;
   }
 }
+
+.adm-size {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.9rem;
+  background: #eef4ff;
+  border-left: 4px solid #3b6fe0;
+  border-radius: 4px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.pf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.bn-title {
+  margin: 1.75rem 0 0.75rem;
+  color: #2d2a5a;
+}
+
+.bn-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.bn-chip {
+  position: relative;
+  width: 240px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.bn-chip img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  object-fit: cover;
+}
+
+.bn-chip button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.bn-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 80px 90px auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  margin: 0;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.bn-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #eef0f4;
+}
+
+.bn-fields {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.bn-row input[type='text'],
+.bn-row input[type='number'] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.bn-row .btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.bn-settings {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .bn-row {
+    grid-template-columns: 1fr;
+  }
+}

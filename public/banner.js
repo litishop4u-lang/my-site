@@ -2,6 +2,31 @@
   var root = document.querySelector('[data-banner]');
   if (!root) return;
 
+  var frame = root.querySelector('[data-frame]');
+  var reduceMotion =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer =
+    window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  if (frame && finePointer && !reduceMotion) {
+    var raf = null;
+    root.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      var rect = frame.getBoundingClientRect();
+      var x = (e.clientX - rect.left) / rect.width - 0.5;
+      var y = (e.clientY - rect.top) / rect.height - 0.5;
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(function () {
+        frame.style.transform =
+          'rotateX(' + (-y * 3).toFixed(2) + 'deg) rotateY(' + (x * 4).toFixed(2) + 'deg)';
+      });
+    });
+    root.addEventListener('pointerleave', function () {
+      if (raf) cancelAnimationFrame(raf);
+      frame.style.transform = '';
+    });
+  }
+
   var slides = Array.prototype.slice.call(root.querySelectorAll('[data-slide]'));
   if (slides.length < 2) return;
   var dots = Array.prototype.slice.call(root.querySelectorAll('[data-dot]'));
@@ -9,8 +34,6 @@
   var index = 0;
   var timer = null;
   var hovering = false;
-  var reduceMotion =
-    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function show(i) {
     index = (i + slides.length) % slides.length;

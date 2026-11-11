@@ -112,7 +112,7 @@ try {
         <input id="bn-file" type="file" accept="image/*" multiple />
         <div class="adm-size">
           <strong>Kích thước chuẩn:</strong> 1920 × 600 px (tỉ lệ 16:5), JPG hoặc WebP, dưới khoảng 300 KB.
-          Trên điện thoại banner được cắt còn tỉ lệ 2:1, nên hãy đặt chữ và nội dung quan trọng trong vùng giữa rộng khoảng 1200 px.
+          Banner hiển thị rộng tối đa khoảng 1320 px. Trên điện thoại banner được cắt còn tỉ lệ 2:1, nên hãy đặt chữ và nội dung quan trọng trong vùng giữa rộng khoảng 1200 px.
         </div>
         <div class="pf-actions">
           <button id="bn-pick" class="adm-icon-btn" type="button">Chọn từ thư viện ảnh đã tải lên</button>
@@ -141,7 +141,7 @@ try {
 
   <div class="adm-list">
     {rows.length === 0 && (
-      <p class="adm-empty">Chưa có banner nào. Trang chủ đang dùng khối banner mặc định.</p>
+      <p class="adm-empty">Chưa có banner nào. Trang chủ đang dùng ảnh banner dự phòng trong Cài đặt (nếu có).</p>
     )}
     {rows.map((b) => (
       <form method="post" class="bn-row">
@@ -176,5 +176,5 @@ try {
     <button class="adm-btn" type="submit">Lưu thời gian</button>
   </form>
 
-  <script is:inline defer src="/admin-banner.js?v=1"></script>
+  <script is:inline defer src="/admin-banner.js?v=2"></script>
 </AdminLayout>
