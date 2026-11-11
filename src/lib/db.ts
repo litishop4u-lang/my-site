@@ -86,3 +86,23 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     .bind(slug)
     .first<Product>();
 }
+
+export async function getRelatedProducts(
+  productId: number,
+  categoryId: number | null,
+  limit = 3,
+): Promise<Product[]> {
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT * FROM products
+       WHERE is_active = 1 AND id != ?
+       ORDER BY (CASE WHEN category_id IS ? THEN 0 ELSE 1 END), id DESC
+       LIMIT ?`,
+    )
+      .bind(productId, categoryId, limit)
+      .all<Product>();
+    return results;
+  } catch {
+    return [];
+  }
+}

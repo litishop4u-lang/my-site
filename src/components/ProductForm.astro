@@ -1,7 +1,7 @@
 ---
 import type { Category } from '../lib/db';
 import type { Brand, ProductInput } from '../lib/admin-products';
-import { parseBlocks } from '../lib/content';
+import { descriptionForEditor } from '../lib/rich';
 
 interface Props {
   product: ProductInput;
@@ -14,10 +14,11 @@ interface Props {
 const { product, categories, brands, error = '', submitLabel } = Astro.props;
 const money = (n: number) => (n > 0 ? n.toLocaleString('vi-VN') : '');
 
+const editorHtml = await descriptionForEditor(product.description);
 const initialData = JSON.stringify({
   images: product.images,
   specs: product.specs,
-  blocks: parseBlocks(product.description),
+  html: editorHtml,
 }).replace(/</g, '\\u003c');
 ---
 
@@ -73,7 +74,7 @@ const initialData = JSON.stringify({
     <div class="adm-field adm-span2">
       <label>Ảnh sản phẩm</label>
       <p class="adm-hint">
-        Chọn được nhiều ảnh cùng lúc (tối đa 20). Ảnh đầu tiên là ảnh đại diện, ảnh thứ hai hiện ra khi khách rê chuột vào sản phẩm. Dùng nút ‹ › để đổi thứ tự.
+        Chọn được nhiều ảnh cùng lúc (tối đa 20). Ảnh đầu tiên là ảnh đại diện, ảnh thứ hai hiện ra khi khách rê chuột vào sản phẩm. Dùng nút ‹ › để đổi thứ tự. Nên dùng các ảnh cùng tỉ lệ để khung ảnh hiển thị đẹp nhất.
       </p>
       <div id="pf-gallery" class="pf-gallery"></div>
       <input id="pf-image-files" type="file" accept="image/*" multiple />
@@ -89,18 +90,82 @@ const initialData = JSON.stringify({
     <div class="adm-field adm-span2">
       <label>Mô tả sản phẩm</label>
       <p class="adm-hint">
-        Hiện ở cuối trang sản phẩm. Thêm lần lượt các phần bên dưới, dùng nút ↑ ↓ để đổi vị trí. Video từ máy tối đa 50 MB (nên dùng MP4); video dài hơn hãy đăng lên YouTube rồi dán đường dẫn.
+        Đặt con trỏ vào chỗ muốn chèn rồi bấm Chèn ảnh / YouTube / video, chúng sẽ nằm đúng vị trí đó trong bài. Bấm vào một ảnh hoặc video để đổi cỡ hoặc xoá. Video từ máy tối đa 50 MB (nên dùng MP4). Ảnh dán từ trang web khác sẽ không được giữ, hãy dùng nút Chèn ảnh.
       </p>
-      <div id="pf-blocks" class="pf-blocks"></div>
-      <div class="pf-toolbar">
-        <button type="button" class="adm-icon-btn" data-add="heading">+ Tiêu đề</button>
-        <button type="button" class="adm-icon-btn" data-add="text">+ Đoạn văn</button>
-        <button type="button" class="adm-icon-btn" data-add="image">+ Ảnh</button>
-        <button type="button" class="adm-icon-btn" data-add="youtube">+ Video YouTube</button>
-        <button type="button" class="adm-icon-btn" data-add="video">+ Video từ máy</button>
+
+      <div class="ed">
+        <div class="ed-toolbar" id="ed-toolbar">
+          <select id="ed-block" title="Kiểu đoạn">
+            <option value="">Kiểu đoạn</option>
+            <option value="p">Đoạn văn</option>
+            <option value="h2">Tiêu đề lớn</option>
+            <option value="h3">Tiêu đề vừa</option>
+            <option value="h4">Tiêu đề nhỏ</option>
+            <option value="blockquote">Trích dẫn</option>
+          </select>
+          <select id="ed-font" title="Phông chữ">
+            <option value="">Phông chữ</option>
+            <option value="Arial, Helvetica, sans-serif">Arial</option>
+            <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Courier New', monospace">Courier New</option>
+          </select>
+          <select id="ed-size" title="Cỡ chữ (bôi đen chữ trước)">
+            <option value="">Cỡ chữ</option>
+            <option value="12">12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="24">24</option>
+            <option value="28">28</option>
+            <option value="32">32</option>
+            <option value="36">36</option>
+            <option value="48">48</option>
+          </select>
+          <span class="ed-sep"></span>
+          <button type="button" data-cmd="bold" title="In đậm"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="In nghiêng"><i>I</i></button>
+          <button type="button" data-cmd="underline" title="Gạch chân"><u>U</u></button>
+          <button type="button" data-cmd="strikeThrough" title="Gạch ngang"><s>S</s></button>
+          <input id="ed-color" type="color" value="#000000" title="Màu chữ" />
+          <span class="ed-sep"></span>
+          <button type="button" data-cmd="justifyLeft" title="Căn trái">Trái</button>
+          <button type="button" data-cmd="justifyCenter" title="Căn giữa">Giữa</button>
+          <button type="button" data-cmd="justifyRight" title="Căn phải">Phải</button>
+          <button type="button" data-cmd="justifyFull" title="Căn đều hai bên">Đều</button>
+          <span class="ed-sep"></span>
+          <button type="button" data-cmd="insertUnorderedList" title="Danh sách chấm">• Danh sách</button>
+          <button type="button" data-cmd="insertOrderedList" title="Danh sách số">1. Danh sách</button>
+          <button type="button" id="ed-link" title="Chèn liên kết">Liên kết</button>
+          <button type="button" data-cmd="unlink" title="Bỏ liên kết">Bỏ liên kết</button>
+          <button type="button" data-cmd="removeFormat" title="Xoá định dạng">Xoá định dạng</button>
+          <span class="ed-sep"></span>
+          <button type="button" id="ed-img" title="Chèn ảnh tại vị trí con trỏ">+ Ảnh</button>
+          <button type="button" id="ed-yt" title="Chèn video YouTube">+ YouTube</button>
+          <button type="button" id="ed-video" title="Chèn video từ máy">+ Video</button>
+          <span class="ed-sep"></span>
+          <button type="button" data-cmd="undo" title="Hoàn tác">↶</button>
+          <button type="button" data-cmd="redo" title="Làm lại">↷</button>
+        </div>
+
+        <div class="ed-media-bar" id="ed-media-bar" hidden>
+          <span>Ảnh/video đang chọn:</span>
+          <button type="button" data-size="s">Nhỏ 50%</button>
+          <button type="button" data-size="m">Vừa 75%</button>
+          <button type="button" data-size="l">Rộng 100%</button>
+          <button type="button" id="ed-media-del" class="danger">Xoá</button>
+        </div>
+
+        <div id="ed-area" class="ed-area" contenteditable="true"></div>
       </div>
-      <input id="pf-block-images" type="file" accept="image/*" multiple hidden />
-      <input id="pf-block-video" type="file" accept="video/mp4,video/webm" hidden />
+
+      <input id="ed-file-images" type="file" accept="image/*" multiple hidden />
+      <input id="ed-file-video" type="file" accept="video/mp4,video/webm" hidden />
     </div>
 
     <div class="adm-field adm-span2">
@@ -124,448 +189,4 @@ const initialData = JSON.stringify({
 </form>
 
 <script is:inline type="application/json" id="pf-data" set:html={initialData}></script>
-
-<script is:inline>
-  (() => {
-    const dataEl = document.getElementById('pf-data');
-    let initial = {};
-    try {
-      initial = JSON.parse(dataEl.textContent || '{}');
-    } catch (e) {
-      initial = {};
-    }
-
-    const state = {
-      images: Array.isArray(initial.images) ? [...initial.images] : [],
-      specs: (Array.isArray(initial.specs) ? initial.specs : []).map((s) => ({
-        label: s.label || '',
-        value: s.value || '',
-      })),
-      blocks: (Array.isArray(initial.blocks) ? initial.blocks : []).map((b) => ({ ...b })),
-    };
-
-    const MAX_IMAGES = 20;
-    const form = document.getElementById('product-form');
-    const submitBtn = document.getElementById('submit-btn');
-    const statusEl = document.getElementById('pf-status');
-    const galleryEl = document.getElementById('pf-gallery');
-    const specsEl = document.getElementById('pf-specs');
-    const blocksEl = document.getElementById('pf-blocks');
-    const blockImages = document.getElementById('pf-block-images');
-    const blockVideo = document.getElementById('pf-block-video');
-    let busy = 0;
-
-    function h(tag, props, ...kids) {
-      const node = document.createElement(tag);
-      for (const key in props || {}) {
-        const value = props[key];
-        if (value === false || value == null) continue;
-        if (key === 'class') node.className = value;
-        else if (key === 'text') node.textContent = value;
-        else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
-        else node.setAttribute(key, value === true ? '' : String(value));
-      }
-      for (const kid of kids) {
-        if (kid) node.append(kid);
-      }
-      return node;
-    }
-
-    function setStatus(text) {
-      statusEl.textContent = text;
-    }
-
-    async function withBusy(fn) {
-      busy++;
-      submitBtn.disabled = true;
-      try {
-        return await fn();
-      } finally {
-        busy--;
-        if (busy === 0) submitBtn.disabled = false;
-      }
-    }
-
-    function swap(list, i, j) {
-      if (j < 0 || j >= list.length) return;
-      const t = list[i];
-      list[i] = list[j];
-      list[j] = t;
-    }
-
-    function ytId(input) {
-      const value = String(input).trim();
-      if (/^[A-Za-z0-9_-]{11}$/.test(value)) return value;
-      try {
-        const url = new URL(value);
-        const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '');
-        let id = null;
-        if (host === 'youtu.be') {
-          id = url.pathname.slice(1).split('/')[0];
-        } else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
-          if (url.pathname === '/watch') {
-            id = url.searchParams.get('v');
-          } else {
-            const m = url.pathname.match(/^\/(embed|shorts|live|v)\/([A-Za-z0-9_-]{11})/);
-            if (m) id = m[2];
-          }
-        }
-        return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function compress(file, maxSize) {
-      if (file.type === 'image/gif') return file;
-      try {
-        const bitmap = await createImageBitmap(file);
-        const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
-        const w = Math.round(bitmap.width * scale);
-        const hgt = Math.round(bitmap.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = hgt;
-        canvas.getContext('2d').drawImage(bitmap, 0, 0, w, hgt);
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
-        if (!blob) return file;
-        return new File([blob], 'image.webp', { type: 'image/webp' });
-      } catch (e) {
-        return file;
-      }
-    }
-
-    async function uploadImage(file) {
-      const small = await compress(file, 1600);
-      const data = new FormData();
-      data.append('file', small);
-      const res = await fetch('/api/admin/upload/', { method: 'POST', body: data });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(result.error || 'Tải ảnh thất bại.');
-      return result.url;
-    }
-
-    async function uploadVideo(file) {
-      if (file.size > 50 * 1024 * 1024) throw new Error('Video quá lớn (tối đa 50 MB).');
-      const res = await fetch('/api/admin/upload-video/', {
-        method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(result.error || 'Tải video thất bại.');
-      return result.url;
-    }
-
-    async function uploadMany(files, onUrl) {
-      await withBusy(async () => {
-        let done = 0;
-        let failed = 0;
-        let lastError = '';
-        for (const file of files) {
-          setStatus('Đang tải ảnh ' + (done + failed + 1) + '/' + files.length + '...');
-          try {
-            onUrl(await uploadImage(file));
-            done++;
-          } catch (err) {
-            failed++;
-            lastError = err && err.message ? err.message : 'không tải được';
-          }
-        }
-        setStatus(
-          failed
-            ? 'Đã tải ' + done + ' ảnh, lỗi ' + failed + ': ' + lastError
-            : 'Đã tải xong ' + done + ' ảnh. Nhớ bấm Lưu bên dưới.',
-        );
-      });
-    }
-
-    function renderGallery() {
-      galleryEl.textContent = '';
-      if (state.images.length === 0) {
-        galleryEl.append(h('p', { class: 'adm-hint', text: 'Chưa có ảnh nào.' }));
-        return;
-      }
-      state.images.forEach((url, i) => {
-        galleryEl.append(
-          h(
-            'div',
-            { class: 'pf-thumb' },
-            h('img', { src: url, alt: '' }),
-            i === 0 ? h('span', { class: 'pf-badge', text: 'Ảnh đại diện' }) : null,
-            h(
-              'div',
-              { class: 'pf-thumb-actions' },
-              h('button', {
-                type: 'button',
-                title: 'Chuyển sang trái',
-                disabled: i === 0,
-                text: '‹',
-                onclick: () => {
-                  swap(state.images, i, i - 1);
-                  renderGallery();
-                },
-              }),
-              h('button', {
-                type: 'button',
-                title: 'Chuyển sang phải',
-                disabled: i === state.images.length - 1,
-                text: '›',
-                onclick: () => {
-                  swap(state.images, i, i + 1);
-                  renderGallery();
-                },
-              }),
-              h('button', {
-                type: 'button',
-                class: 'danger',
-                title: 'Xoá ảnh',
-                text: '✕',
-                onclick: () => {
-                  state.images.splice(i, 1);
-                  renderGallery();
-                },
-              }),
-            ),
-          ),
-        );
-      });
-    }
-
-    function renderSpecs() {
-      specsEl.textContent = '';
-      state.specs.forEach((row, i) => {
-        specsEl.append(
-          h(
-            'div',
-            { class: 'pf-spec-row' },
-            h('input', {
-              type: 'text',
-              placeholder: 'Tên thông số (vd: Tốc độ)',
-              value: row.label,
-              oninput: (e) => {
-                row.label = e.target.value;
-              },
-            }),
-            h('input', {
-              type: 'text',
-              placeholder: 'Giá trị (vd: 25km/h)',
-              value: row.value,
-              oninput: (e) => {
-                row.value = e.target.value;
-              },
-            }),
-            h('button', {
-              type: 'button',
-              class: 'adm-icon-btn danger',
-              title: 'Xoá dòng',
-              text: '✕',
-              onclick: () => {
-                state.specs.splice(i, 1);
-                renderSpecs();
-              },
-            }),
-          ),
-        );
-      });
-    }
-
-    const LABELS = {
-      heading: 'Tiêu đề',
-      text: 'Đoạn văn',
-      image: 'Ảnh',
-      video: 'Video từ máy',
-      youtube: 'Video YouTube',
-    };
-
-    function renderBlocks() {
-      blocksEl.textContent = '';
-      if (state.blocks.length === 0) {
-        blocksEl.append(
-          h('p', { class: 'adm-hint', text: 'Chưa có nội dung mô tả. Bấm các nút bên dưới để thêm.' }),
-        );
-      }
-      const last = state.blocks.length - 1;
-      state.blocks.forEach((block, i) => {
-        let body = null;
-        if (block.type === 'heading') {
-          body = h('input', {
-            type: 'text',
-            placeholder: 'Nhập tiêu đề...',
-            value: block.text || '',
-            oninput: (e) => {
-              block.text = e.target.value;
-            },
-          });
-        } else if (block.type === 'text') {
-          body = h('textarea', {
-            rows: '5',
-            placeholder: 'Nhập nội dung... (xuống dòng 2 lần để tách đoạn)',
-            oninput: (e) => {
-              block.text = e.target.value;
-            },
-          });
-          body.value = block.text || '';
-        } else if (block.type === 'image') {
-          body = h('img', { class: 'pf-block-img', src: block.url, alt: '' });
-        } else if (block.type === 'video') {
-          body = h('video', { class: 'pf-block-video', src: block.url, controls: true, preload: 'metadata' });
-        } else if (block.type === 'youtube') {
-          body = h(
-            'div',
-            { class: 'pf-yt' },
-            h('img', { src: 'https://i.ytimg.com/vi/' + block.id + '/hqdefault.jpg', alt: '' }),
-            h('span', { text: 'youtube.com/watch?v=' + block.id }),
-          );
-        }
-
-        blocksEl.append(
-          h(
-            'div',
-            { class: 'pf-block' },
-            h(
-              'div',
-              { class: 'pf-block-head' },
-              h('strong', { text: LABELS[block.type] || block.type }),
-              h(
-                'div',
-                { class: 'pf-block-actions' },
-                h('button', {
-                  type: 'button',
-                  class: 'adm-icon-btn',
-                  title: 'Lên',
-                  disabled: i === 0,
-                  text: '↑',
-                  onclick: () => {
-                    swap(state.blocks, i, i - 1);
-                    renderBlocks();
-                  },
-                }),
-                h('button', {
-                  type: 'button',
-                  class: 'adm-icon-btn',
-                  title: 'Xuống',
-                  disabled: i === last,
-                  text: '↓',
-                  onclick: () => {
-                    swap(state.blocks, i, i + 1);
-                    renderBlocks();
-                  },
-                }),
-                h('button', {
-                  type: 'button',
-                  class: 'adm-icon-btn danger',
-                  title: 'Xoá',
-                  text: '✕',
-                  onclick: () => {
-                    state.blocks.splice(i, 1);
-                    renderBlocks();
-                  },
-                }),
-              ),
-            ),
-            body,
-          ),
-        );
-      });
-    }
-
-    document.getElementById('pf-image-files').addEventListener('change', async (e) => {
-      const room = Math.max(0, MAX_IMAGES - state.images.length);
-      const files = Array.from(e.target.files || []).slice(0, room);
-      e.target.value = '';
-      if (files.length === 0) {
-        setStatus('Đã đủ ' + MAX_IMAGES + ' ảnh.');
-        return;
-      }
-      await uploadMany(files, (url) => {
-        state.images.push(url);
-        renderGallery();
-      });
-    });
-
-    document.getElementById('pf-add-spec').addEventListener('click', () => {
-      state.specs.push({ label: '', value: '' });
-      renderSpecs();
-    });
-
-    document.querySelectorAll('[data-add]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const kind = btn.getAttribute('data-add');
-        if (kind === 'heading' || kind === 'text') {
-          state.blocks.push({ type: kind, text: '' });
-          renderBlocks();
-        } else if (kind === 'image') {
-          blockImages.click();
-        } else if (kind === 'video') {
-          blockVideo.click();
-        } else if (kind === 'youtube') {
-          const input = window.prompt('Dán đường dẫn video YouTube (ví dụ: https://www.youtube.com/watch?v=...):');
-          if (!input) return;
-          const id = ytId(input);
-          if (!id) {
-            alert('Đường dẫn YouTube không hợp lệ.');
-            return;
-          }
-          state.blocks.push({ type: 'youtube', id });
-          renderBlocks();
-        }
-      });
-    });
-
-    blockImages.addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files || []);
-      e.target.value = '';
-      if (files.length === 0) return;
-      await uploadMany(files, (url) => {
-        state.blocks.push({ type: 'image', url });
-        renderBlocks();
-      });
-    });
-
-    blockVideo.addEventListener('change', async (e) => {
-      const file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      await withBusy(async () => {
-        setStatus('Đang tải video lên, có thể mất vài phút...');
-        try {
-          const url = await uploadVideo(file);
-          state.blocks.push({ type: 'video', url });
-          renderBlocks();
-          setStatus('Đã tải video xong. Nhớ bấm Lưu bên dưới.');
-        } catch (err) {
-          setStatus('Lỗi: ' + (err && err.message ? err.message : 'không tải được video.'));
-        }
-      });
-    });
-
-    document.querySelectorAll('[data-money]').forEach((el) => {
-      el.addEventListener('input', () => {
-        const digits = el.value.replace(/\D/g, '');
-        el.value = digits ? Number(digits).toLocaleString('vi-VN') : '';
-      });
-    });
-
-    form.addEventListener('submit', (e) => {
-      if (busy > 0) {
-        e.preventDefault();
-        alert('Đang tải file lên, vui lòng đợi xong rồi bấm Lưu.');
-        return;
-      }
-      const blocks = state.blocks.filter((b) => {
-        if (b.type === 'heading' || b.type === 'text') return (b.text || '').trim() !== '';
-        if (b.type === 'youtube') return !!b.id;
-        return !!b.url;
-      });
-      const specs = state.specs.filter((s) => s.label.trim() || s.value.trim());
-      document.getElementById('pf-images-input').value = JSON.stringify(state.images);
-      document.getElementById('pf-specs-input').value = JSON.stringify(specs);
-      document.getElementById('pf-desc-input').value = JSON.stringify(blocks);
-    });
-
-    renderGallery();
-    renderSpecs();
-    renderBlocks();
-  })();
-</script>
+<script is:inline defer src="/admin-product-form.js?v=1"></script>

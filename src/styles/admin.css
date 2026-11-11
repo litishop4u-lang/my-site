@@ -443,3 +443,155 @@
     grid-template-columns: 1fr;
   }
 }
+
+.ed {
+  border: 1px solid #c9ccd6;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.ed-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #f4f5f9;
+  border-bottom: 1px solid #c9ccd6;
+}
+
+.ed-toolbar button,
+.adm-field .ed-toolbar select {
+  width: auto;
+  height: 34px;
+  padding: 0 0.6rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ed-toolbar button:hover {
+  background: #eceef6;
+}
+
+.ed-toolbar input[type='color'] {
+  width: 36px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.ed-sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 0.25rem;
+  background: #c9ccd6;
+}
+
+.ed-media-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: #fff6f3;
+  border-bottom: 1px solid #f0c9bd;
+  font-size: 0.9rem;
+}
+
+.ed-media-bar button {
+  height: 32px;
+  padding: 0 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  background: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ed-media-bar .danger {
+  color: #b3261e;
+}
+
+.ed-area {
+  min-height: 360px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 1rem;
+  outline: none;
+  line-height: 1.6;
+}
+
+.ed-area p {
+  margin: 0 0 0.9rem;
+}
+
+.ed-area h2,
+.ed-area h3,
+.ed-area h4 {
+  margin: 1.2rem 0 0.5rem;
+  color: #2d2a5a;
+}
+
+.ed-area blockquote {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border-left: 4px solid #e8320a;
+  background: #f6f6fa;
+}
+
+.ed-area ul,
+.ed-area ol {
+  margin: 0 0 1rem 1.4rem;
+  padding: 0;
+}
+
+.ed-area figure {
+  position: relative;
+  margin: 1rem auto;
+  padding: 6px;
+  border: 2px dashed transparent;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.ed-area figure[data-size='m'] {
+  width: 75%;
+}
+
+.ed-area figure[data-size='s'] {
+  width: 50%;
+}
+
+.ed-area figure.selected {
+  border-color: #e8320a;
+}
+
+.ed-area figure img,
+.ed-area figure video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.ed-area figure[data-yt]::after {
+  content: '▶ Video YouTube';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-weight: 700;
+  pointer-events: none;
+}

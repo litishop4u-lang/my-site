@@ -1,7 +1,8 @@
 import { env } from 'cloudflare:workers';
 import { slugify } from './slug';
-import { parseImages, parseSpecs, parseBlocks } from './content';
+import { parseImages, parseSpecs } from './content';
 import type { Spec } from './content';
+import { cleanDescription } from './rich';
 
 export type Brand = {
   id: number;
@@ -85,7 +86,6 @@ export function parseProductForm(form: FormData): ProductInput {
   const name = String(form.get('name') ?? '').trim();
   const images = parseImages(String(form.get('images') ?? ''));
   const specs = parseSpecs(String(form.get('specs') ?? ''));
-  const blocks = parseBlocks(String(form.get('description') ?? ''));
 
   return {
     name,
@@ -98,7 +98,7 @@ export function parseProductForm(form: FormData): ProductInput {
     image: images[0] ?? '',
     images,
     specs,
-    description: blocks.length > 0 ? JSON.stringify(blocks) : '',
+    description: String(form.get('description') ?? '').slice(0, 300000),
     is_active: form.get('is_active') ? 1 : 0,
   };
 }
@@ -179,6 +179,7 @@ export async function getProductById(id: number): Promise<(ProductInput & { id: 
 }
 
 export async function insertProduct(p: ProductInput): Promise<void> {
+  const description = await cleanDescription(p.description);
   await env.DB.prepare(
     `INSERT INTO products
       (name, slug, sku, category_id, brand_id, price, old_price, image, images, specs, description, is_active)
@@ -195,13 +196,14 @@ export async function insertProduct(p: ProductInput): Promise<void> {
       p.image || null,
       p.images.length > 0 ? JSON.stringify(p.images) : null,
       p.specs.length > 0 ? JSON.stringify(p.specs) : null,
-      p.description || null,
+      description || null,
       p.is_active,
     )
     .run();
 }
 
 export async function updateProduct(id: number, p: ProductInput): Promise<void> {
+  const description = await cleanDescription(p.description);
   await env.DB.prepare(
     `UPDATE products SET
        name = ?, slug = ?, sku = ?, category_id = ?, brand_id = ?, price = ?, old_price = ?,
@@ -219,7 +221,7 @@ export async function updateProduct(id: number, p: ProductInput): Promise<void> 
       p.image || null,
       p.images.length > 0 ? JSON.stringify(p.images) : null,
       p.specs.length > 0 ? JSON.stringify(p.specs) : null,
-      p.description || null,
+      description || null,
       p.is_active,
       id,
     )

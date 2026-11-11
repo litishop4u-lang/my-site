@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import ProductContent from '../../components/ProductContent.astro';
-import { getProductBySlug, getSettings, formatPrice } from '../../lib/db';
-import { parseImages, parseSpecs, parseBlocks, blocksToPlainText } from '../../lib/content';
+import { getProductBySlug, getRelatedProducts, getSettings, formatPrice } from '../../lib/db';
+import { parseImages, parseSpecs } from '../../lib/content';
+import { prepareDescription, htmlToPlainText } from '../../lib/rich';
 
 const { slug } = Astro.params;
 const product = slug ? await getProductBySlug(slug) : null;
@@ -18,8 +18,24 @@ const url = new URL(Astro.url.pathname, Astro.site).toString();
 
 const images = product ? parseImages(product.images, product.image) : [];
 const specs = product ? parseSpecs(product.specs).filter((s) => s.label && s.value) : [];
-const blocks = product ? parseBlocks(product.description) : [];
-const plainDescription = blocksToPlainText(blocks);
+const descriptionHtml = product ? await prepareDescription(product.description, product.name) : '';
+const plainDescription = htmlToPlainText(descriptionHtml);
+
+const related = product ? await getRelatedProducts(product.id, product.category_id, 3) : [];
+const relatedItems = related.map((p) => ({
+  ...p,
+  thumb: parseImages(p.images, p.image)[0] ?? '',
+}));
+
+const currentData = product
+  ? JSON.stringify({
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      old_price: product.old_price,
+      image: images[0] ?? '',
+    }).replace(/</g, '\\u003c')
+  : '';
 
 const metaDescription = product
   ? plainDescription.slice(0, 155) ||
@@ -31,7 +47,7 @@ const productSchema = product
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.name,
-      description: plainDescription || undefined,
+      description: plainDescription.slice(0, 500) || undefined,
       sku: product.sku || undefined,
       image: images.length > 0 ? images.map((u) => new URL(u, Astro.site).toString()) : undefined,
       brand: product.brand_name ? { '@type': 'Brand', name: product.brand_name } : undefined,
@@ -138,12 +154,45 @@ const productSchema = product
           </div>
         </article>
 
-        {blocks.length > 0 && (
-          <section class="product-description">
-            <h2>Mô tả sản phẩm</h2>
-            <ProductContent blocks={blocks} alt={product.name} />
-          </section>
-        )}
+        <div class="detail-lower">
+          <div class="detail-main">
+            {descriptionHtml && (
+              <section class="product-description">
+                <h2>Mô tả sản phẩm</h2>
+                <div class="rich rich-html" set:html={descriptionHtml}></div>
+              </section>
+            )}
+          </div>
+
+          <aside class="detail-side">
+            {relatedItems.length > 0 && (
+              <section class="side-box">
+                <h2>Sản phẩm liên quan</h2>
+                <ul class="side-list">
+                  {relatedItems.map((p) => (
+                    <li class="side-item">
+                      <a class="side-thumb" href={`/san-pham/${p.slug}/`}>
+                        {p.thumb ? <img src={p.thumb} alt={p.name} loading="lazy" /> : null}
+                      </a>
+                      <div class="side-body">
+                        <a class="side-name" href={`/san-pham/${p.slug}/`}>{p.name}</a>
+                        <div class="side-price">
+                          {p.price > 0 ? formatPrice(p.price) : 'Giá liên hệ'}
+                          {p.price > 0 && p.old_price > p.price && <del>{formatPrice(p.old_price)}</del>}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <section class="side-box" data-viewed hidden>
+              <h2>Sản phẩm đã xem</h2>
+              <ul class="side-list" data-viewed-list></ul>
+            </section>
+          </aside>
+        </div>
       </>
     ) : (
       <>
@@ -153,5 +202,7 @@ const productSchema = product
     )}
   </div>
 
+  {product && <script is:inline type="application/json" id="current-product" set:html={currentData}></script>}
   <script is:inline defer src="/gallery.js?v=2"></script>
+  <script is:inline defer src="/viewed.js?v=1"></script>
 </BaseLayout>
