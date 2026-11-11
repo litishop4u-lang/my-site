@@ -1,39 +1,80 @@
 ---
-import type { Settings } from '../lib/db';
+import type { Settings, Category } from '../lib/db';
 
 interface Props {
   settings: Settings;
+  categories?: Category[];
 }
 
-const { settings } = Astro.props;
+const { settings, categories = [] } = Astro.props;
 const path = Astro.url.pathname;
 const siteName = settings.site_name || 'Tên Website';
 const phone = settings.phone || '';
 
-const links = [
-  { href: '/', label: 'Trang chủ' },
-  { href: '/gioi-thieu/', label: 'Giới thiệu' },
-  { href: '/blog/', label: 'Tin tức' },
-  { href: '/lien-he/', label: 'Liên hệ' },
-];
-
-function isActive(href: string) {
-  return href === '/' ? path === '/' : path.startsWith(href);
-}
+const isHome = path === '/';
+const isAbout = path.startsWith('/gioi-thieu/');
+const isBlog = path.startsWith('/blog/');
+const isContact = path.startsWith('/lien-he/');
+const isShop = path.startsWith('/danh-muc/') || path.startsWith('/san-pham/');
 ---
 
 <header class="site-header">
-  <div class="container">
+  <div class="container header-inner">
     <a class="brand" href="/">
-      {settings.logo ? <img src={settings.logo} alt={siteName} height="40" /> : siteName}
+      {settings.logo ? <img src={settings.logo} alt={siteName} /> : siteName}
     </a>
-    <nav aria-label="Menu chính">
-      {links.map((link) => (
-        <a href={link.href} aria-current={isActive(link.href) ? 'page' : undefined}>
-          {link.label}
-        </a>
-      ))}
+
+    <nav class="main-nav" aria-label="Menu chính">
+      <a href="/" aria-current={isHome ? 'page' : undefined}>Trang chủ</a>
+      <a href="/gioi-thieu/" aria-current={isAbout ? 'page' : undefined}>Giới thiệu</a>
+
+      {categories.length > 0 && (
+        <div class="nav-dropdown" data-dropdown>
+          <button
+            type="button"
+            class:list={['nav-toggle', { active: isShop }]}
+            aria-expanded="false"
+            aria-haspopup="true"
+            data-dropdown-toggle
+          >
+            Danh mục sản phẩm <span class="caret" aria-hidden="true">▾</span>
+          </button>
+          <ul class="dropdown-menu">
+            {categories.map((c) => (
+              <li><a href={`/danh-muc/${c.slug}/`}>{c.name}</a></li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <a href="/blog/" aria-current={isBlog ? 'page' : undefined}>Tin tức</a>
+      <a href="/lien-he/" aria-current={isContact ? 'page' : undefined}>Liên hệ</a>
     </nav>
+
     {phone && <a class="header-phone" href={`tel:${phone.replace(/\s/g, '')}`}>Gọi: {phone}</a>}
   </div>
 </header>
+
+<script is:inline>
+  (function () {
+    var dd = document.querySelector('[data-dropdown]');
+    if (!dd) return;
+    var btn = dd.querySelector('[data-dropdown-toggle]');
+
+    function setOpen(open) {
+      dd.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(!dd.classList.contains('open'));
+    });
+    document.addEventListener('click', function (e) {
+      if (!dd.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') setOpen(false);
+    });
+  })();
+</script>

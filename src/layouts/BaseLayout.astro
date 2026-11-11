@@ -81,7 +81,7 @@ const websiteSchema = {
     {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
   </head>
   <body>
-    <Header settings={settings} />
+    <Header settings={settings} categories={categories} />
     <main class={wide ? undefined : 'container'}>
       <slot />
     </main>
