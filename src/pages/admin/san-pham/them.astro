@@ -1,0 +1,37 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ProductForm from '../../../components/ProductForm.astro';
+import { getCategories } from '../../../lib/db';
+import {
+  getBrands,
+  parseProductForm,
+  insertProduct,
+  uniqueSlug,
+  emptyProduct,
+} from '../../../lib/admin-products';
+
+export const prerender = false;
+
+const [categories, brands] = await Promise.all([getCategories(), getBrands()]);
+
+let product = emptyProduct();
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  product = parseProductForm(form);
+
+  if (!product.name) {
+    error = 'Vui lòng nhập tên sản phẩm.';
+  } else {
+    product.slug = await uniqueSlug(product.slug);
+    await insertProduct(product);
+    return Astro.redirect('/admin/san-pham/?saved=1');
+  }
+}
+---
+
+<AdminLayout title="Thêm sản phẩm">
+  <h1>Thêm sản phẩm</h1>
+  <ProductForm product={product} categories={categories} brands={brands} error={error} submitLabel="Lưu sản phẩm" />
+</AdminLayout>

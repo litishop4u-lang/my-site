@@ -4,6 +4,7 @@ interface Props {
   showNav?: boolean;
 }
 
+import '../styles/admin.css';
 const { title, showNav = true } = Astro.props;
 const path = Astro.url.pathname;
 ---
@@ -138,6 +139,7 @@ const path = Astro.url.pathname;
         <strong>Quản trị website</strong>
         <nav>
           <a href="/admin/" aria-current={path === '/admin/' ? 'page' : undefined}>Tổng quan</a>
+          <a href="/admin/san-pham/" aria-current={path.startsWith('/admin/san-pham/') ? 'page' : undefined}>Sản phẩm</a>
           <a href="/" target="_blank" rel="noopener">Xem website</a>
         </nav>
         <form method="post" action="/admin/logout/">

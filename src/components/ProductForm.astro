@@ -1,0 +1,172 @@
+---
+import type { Category } from '../lib/db';
+import type { Brand, ProductInput } from '../lib/admin-products';
+
+interface Props {
+  product: ProductInput;
+  categories: Category[];
+  brands: Brand[];
+  error?: string;
+  submitLabel: string;
+}
+
+const { product, categories, brands, error = '', submitLabel } = Astro.props;
+const money = (n: number) => (n > 0 ? n.toLocaleString('vi-VN') : '');
+---
+
+<form method="post" class="adm-form">
+  {error && <div class="adm-error">{error}</div>}
+
+  <div class="adm-form-grid">
+    <div class="adm-field adm-span2">
+      <label for="name">Tên sản phẩm *</label>
+      <input id="name" name="name" type="text" required value={product.name} />
+    </div>
+
+    <div class="adm-field">
+      <label for="sku">Mã SKU</label>
+      <input id="sku" name="sku" type="text" value={product.sku} />
+    </div>
+
+    <div class="adm-field">
+      <label for="slug">Đường dẫn (để trống sẽ tự tạo từ tên)</label>
+      <input id="slug" name="slug" type="text" value={product.slug} />
+    </div>
+
+    <div class="adm-field">
+      <label for="category_id">Danh mục</label>
+      <select id="category_id" name="category_id">
+        <option value="">-- Chọn danh mục --</option>
+        {categories.map((c) => (
+          <option value={c.id} selected={product.category_id === c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
+
+    <div class="adm-field">
+      <label for="brand_id">Thương hiệu</label>
+      <select id="brand_id" name="brand_id">
+        <option value="">-- Chọn thương hiệu --</option>
+        {brands.map((b) => (
+          <option value={b.id} selected={product.brand_id === b.id}>{b.name}</option>
+        ))}
+      </select>
+    </div>
+
+    <div class="adm-field">
+      <label for="price">Giá bán (đ)</label>
+      <input id="price" name="price" type="text" inputmode="numeric" data-money value={money(product.price)} />
+    </div>
+
+    <div class="adm-field">
+      <label for="old_price">Giá cũ - gạch ngang (đ, không bắt buộc)</label>
+      <input id="old_price" name="old_price" type="text" inputmode="numeric" data-money value={money(product.old_price)} />
+    </div>
+
+    <div class="adm-field adm-span2">
+      <label>Ảnh sản phẩm</label>
+      <div class="adm-image-box">
+        <img id="image-preview" class="adm-image-preview" alt="Ảnh xem trước" src={product.image || undefined} hidden={!product.image} />
+        <div>
+          <input id="image-file" type="file" accept="image/*" />
+          <div id="image-status" class="adm-hint"></div>
+          <button id="image-remove" class="adm-icon-btn danger" type="button" hidden={!product.image}>Xoá ảnh</button>
+        </div>
+      </div>
+      <input id="image" name="image" type="hidden" value={product.image} />
+    </div>
+
+    <div class="adm-field adm-span2">
+      <label for="description">Mô tả sản phẩm</label>
+      <textarea id="description" name="description" rows="8">{product.description}</textarea>
+    </div>
+
+    <div class="adm-field adm-span2">
+      <label class="adm-check">
+        <input name="is_active" type="checkbox" checked={product.is_active === 1} />
+        Hiển thị trên website
+      </label>
+    </div>
+  </div>
+
+  <div class="adm-actions">
+    <button id="submit-btn" class="adm-btn" type="submit">{submitLabel}</button>
+    <a class="adm-link" href="/admin/san-pham/">Huỷ</a>
+  </div>
+</form>
+
+<script is:inline>
+  (function () {
+    var fileInput = document.getElementById('image-file');
+    var hidden = document.getElementById('image');
+    var preview = document.getElementById('image-preview');
+    var statusEl = document.getElementById('image-status');
+    var removeBtn = document.getElementById('image-remove');
+    var submitBtn = document.getElementById('submit-btn');
+
+    function showImage(url) {
+      hidden.value = url || '';
+      if (url) {
+        preview.src = url;
+        preview.hidden = false;
+        removeBtn.hidden = false;
+      } else {
+        preview.removeAttribute('src');
+        preview.hidden = true;
+        removeBtn.hidden = true;
+      }
+    }
+
+    async function compress(file) {
+      if (file.type === 'image/gif') return file;
+      var bitmap = await createImageBitmap(file);
+      var maxSize = 1600;
+      var scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+      var w = Math.round(bitmap.width * scale);
+      var h = Math.round(bitmap.height * scale);
+      var canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      var blob = await new Promise(function (resolve) {
+        canvas.toBlob(resolve, 'image/webp', 0.85);
+      });
+      if (!blob) return file;
+      return new File([blob], 'image.webp', { type: 'image/webp' });
+    }
+
+    fileInput.addEventListener('change', async function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      statusEl.textContent = 'Đang tải ảnh lên...';
+      submitBtn.disabled = true;
+      try {
+        var small = await compress(file);
+        var data = new FormData();
+        data.append('file', small);
+        var res = await fetch('/api/admin/upload/', { method: 'POST', body: data });
+        var result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Tải ảnh thất bại.');
+        showImage(result.url);
+        statusEl.textContent = 'Đã tải ảnh lên. Nhớ bấm Lưu bên dưới.';
+      } catch (err) {
+        statusEl.textContent = 'Lỗi: ' + (err && err.message ? err.message : 'không tải được ảnh.');
+      } finally {
+        submitBtn.disabled = false;
+        fileInput.value = '';
+      }
+    });
+
+    removeBtn.addEventListener('click', function () {
+      showImage('');
+      statusEl.textContent = '';
+    });
+
+    document.querySelectorAll('[data-money]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var digits = el.value.replace(/\D/g, '');
+        el.value = digits ? Number(digits).toLocaleString('vi-VN') : '';
+      });
+    });
+  })();
+</script>

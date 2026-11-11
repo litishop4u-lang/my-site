@@ -1,0 +1,116 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { listProducts, deleteProduct } from '../../../lib/admin-products';
+import { formatPrice } from '../../../lib/db';
+
+export const prerender = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (form.get('action') === 'delete') {
+    const id = Number(form.get('id'));
+    if (Number.isInteger(id) && id > 0) {
+      await deleteProduct(id);
+    }
+  }
+  return Astro.redirect('/admin/san-pham/?deleted=1');
+}
+
+const q = (Astro.url.searchParams.get('q') ?? '').trim();
+const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+const saved = Astro.url.searchParams.get('saved');
+const deleted = Astro.url.searchParams.get('deleted');
+
+const { items, total, pageSize } = await listProducts({ q, page });
+const pages = Math.max(1, Math.ceil(total / pageSize));
+
+function fmtDate(value: string): string {
+  const d = new Date(value.replace(' ', 'T') + 'Z');
+  return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+
+function pageLink(n: number): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  params.set('page', String(n));
+  return `/admin/san-pham/?${params.toString()}`;
+}
+---
+
+<AdminLayout title="Sản phẩm">
+  <h1>Sản phẩm</h1>
+
+  {saved && <div class="adm-flash">Đã lưu sản phẩm.</div>}
+  {deleted && <div class="adm-flash">Đã xoá sản phẩm.</div>}
+
+  <div class="adm-toolbar">
+    <a class="adm-btn adm-btn-link" href="/admin/san-pham/them/">+ Thêm sản phẩm</a>
+    <form class="adm-search" method="get">
+      <input type="search" name="q" value={q} placeholder="Tìm theo tên hoặc SKU" />
+      <button class="adm-btn" type="submit">Tìm</button>
+    </form>
+  </div>
+
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>Hình ảnh</th>
+          <th>Tên sản phẩm</th>
+          <th>SKU</th>
+          <th>Danh mục</th>
+          <th>Thương hiệu</th>
+          <th>Giá bán</th>
+          <th>Ngày tạo</th>
+          <th>Cập nhật</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.length === 0 && (
+          <tr><td colspan="9" class="adm-empty">Không có sản phẩm nào.</td></tr>
+        )}
+        {items.map((p) => (
+          <tr>
+            <td>
+              {p.image ? (
+                <img class="adm-thumb" src={p.image} alt="" loading="lazy" />
+              ) : (
+                <div class="adm-thumb"></div>
+              )}
+            </td>
+            <td>
+              <strong>{p.name}</strong>
+              {p.is_active === 0 && <span class="adm-badge">Đang ẩn</span>}
+            </td>
+            <td>{p.sku ?? ''}</td>
+            <td>{p.category_name ?? ''}</td>
+            <td>{p.brand_name ?? ''}</td>
+            <td>
+              {p.price > 0 ? formatPrice(p.price) : 'Liên hệ'}
+              {p.old_price > p.price && <span class="adm-old">{formatPrice(p.old_price)}</span>}
+            </td>
+            <td>{fmtDate(p.created_at)}</td>
+            <td>{fmtDate(p.updated_at)}</td>
+            <td>
+              <div class="adm-row-actions">
+                <a class="adm-icon-btn" href={`/admin/san-pham/${p.id}/`}>Sửa</a>
+                <form method="post" onsubmit="return confirm('Xoá sản phẩm này?')">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={p.id} />
+                  <button class="adm-icon-btn danger" type="submit">Xoá</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="adm-pager">
+    <span>{total} sản phẩm - Trang {page}/{pages}</span>
+    {page > 1 && <a href={pageLink(page - 1)}>‹ Trước</a>}
+    {page < pages && <a href={pageLink(page + 1)}>Sau ›</a>}
+  </div>
+</AdminLayout>
