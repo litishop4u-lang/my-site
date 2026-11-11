@@ -1,0 +1,49 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  checkPassword,
+  createSession,
+  isValidSession,
+  SESSION_COOKIE,
+  SESSION_SECONDS,
+} from '../../lib/auth';
+
+export const prerender = false;
+
+let error = '';
+
+if (await isValidSession(Astro.cookies.get(SESSION_COOKIE)?.value)) {
+  return Astro.redirect('/admin/');
+}
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const password = String(form.get('password') ?? '');
+
+  if (await checkPassword(password)) {
+    Astro.cookies.set(SESSION_COOKIE, await createSession(), {
+      path: '/',
+      httpOnly: true,
+      secure: Astro.url.protocol === 'https:',
+      sameSite: 'strict',
+      maxAge: SESSION_SECONDS,
+    });
+    return Astro.redirect('/admin/');
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  error = 'Mật khẩu không đúng.';
+}
+---
+
+<AdminLayout title="Đăng nhập" showNav={false}>
+  <div class="adm-login">
+    <h1>Đăng nhập quản trị</h1>
+    {error && <div class="adm-error">{error}</div>}
+    <form method="post">
+      <label for="password">Mật khẩu</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus />
+      <button class="adm-btn" type="submit">Đăng nhập</button>
+    </form>
+  </div>
+</AdminLayout>

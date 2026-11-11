@@ -1,0 +1,31 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+async function count(sql: string): Promise<number> {
+  try {
+    const row = await env.DB.prepare(sql).first<{ n: number }>();
+    return row?.n ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+const [products, categories, brands] = await Promise.all([
+  count('SELECT COUNT(*) AS n FROM products'),
+  count('SELECT COUNT(*) AS n FROM categories'),
+  count('SELECT COUNT(*) AS n FROM brands'),
+]);
+---
+
+<AdminLayout title="Tổng quan">
+  <h1>Tổng quan</h1>
+  <div class="adm-cards">
+    <div class="adm-card"><div class="num">{products}</div><div class="label">Sản phẩm</div></div>
+    <div class="adm-card"><div class="num">{categories}</div><div class="label">Danh mục</div></div>
+    <div class="adm-card"><div class="num">{brands}</div><div class="label">Thương hiệu</div></div>
+  </div>
+  <p class="adm-note">Các mục quản lý sản phẩm, danh mục, thương hiệu và cài đặt sẽ được thêm ở các bước tiếp theo.</p>
+</AdminLayout>

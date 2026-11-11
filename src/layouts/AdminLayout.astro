@@ -1,0 +1,152 @@
+---
+interface Props {
+  title: string;
+  showNav?: boolean;
+}
+
+const { title, showNav = true } = Astro.props;
+const path = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} | Quản trị</title>
+    <style is:global>
+      .adm {
+        margin: 0;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        background: #f4f5f9;
+        color: #1a1a1a;
+      }
+      .adm-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem 2rem;
+        background: #2d2a5a;
+        color: #ffffff;
+        padding: 0.8rem 1.25rem;
+        border-bottom: 2px solid #e8320a;
+      }
+      .adm-top nav {
+        display: flex;
+        gap: 1.25rem;
+        flex: 1;
+      }
+      .adm-top a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .adm-top a[aria-current='page'] {
+        color: #ff8a6b;
+      }
+      .adm-top form {
+        margin: 0;
+      }
+      .adm-btn {
+        background: #e8320a;
+        color: #ffffff;
+        border: 0;
+        padding: 0.6rem 1.2rem;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .adm-btn:hover {
+        background: #c52a08;
+      }
+      .adm-btn-light {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        padding: 0.4rem 0.9rem;
+        font-size: 0.9rem;
+      }
+      .adm-main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 3rem;
+      }
+      .adm-main h1 {
+        margin: 0 0 1.25rem;
+        color: #2d2a5a;
+      }
+      .adm-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      .adm-card {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      }
+      .adm-card .num {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #2d2a5a;
+      }
+      .adm-card .label {
+        color: #5f6368;
+      }
+      .adm-login {
+        max-width: 380px;
+        margin: 12vh auto 0;
+        background: #ffffff;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+      .adm-login h1 {
+        margin-top: 0;
+      }
+      .adm-login label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      .adm-login input[type='password'] {
+        width: 100%;
+        padding: 0.7rem;
+        font-size: 1rem;
+        border: 1px solid #c9ccd6;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      .adm-error {
+        background: #fdecea;
+        color: #b3261e;
+        padding: 0.6rem 0.8rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      .adm-note {
+        color: #5f6368;
+        margin-top: 1.5rem;
+      }
+    </style>
+  </head>
+  <body class="adm">
+    {showNav && (
+      <header class="adm-top">
+        <strong>Quản trị website</strong>
+        <nav>
+          <a href="/admin/" aria-current={path === '/admin/' ? 'page' : undefined}>Tổng quan</a>
+          <a href="/" target="_blank" rel="noopener">Xem website</a>
+        </nav>
+        <form method="post" action="/admin/logout/">
+          <button class="adm-btn adm-btn-light" type="submit">Đăng xuất</button>
+        </form>
+      </header>
+    )}
+    <main class="adm-main">
+      <slot />
+    </main>
+  </body>
+</html>

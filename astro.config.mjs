@@ -11,5 +11,9 @@ export default defineConfig({
   build: {
     format: 'directory',
   },
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes('/admin/') && !page.includes('/api/'),
+    }),
+  ],
 });
