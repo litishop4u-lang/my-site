@@ -4,7 +4,8 @@ const path = Astro.url.pathname;
 const links = [
   { href: '/', label: 'Trang chủ' },
   { href: '/gioi-thieu/', label: 'Giới thiệu' },
-  { href: '/blog/', label: 'Blog' },
+  { href: '/blog/', label: 'Tin tức' },
+  { href: '/lien-he/', label: 'Liên hệ' },
 ];
 
 function isActive(href: string) {
@@ -22,5 +23,6 @@ function isActive(href: string) {
         </a>
       ))}
     </nav>
+    <a class="header-phone" href="tel:0768640918">Gọi: 0768 640 918</a>
   </div>
 </header>

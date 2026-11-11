@@ -5,30 +5,89 @@ import { getCollection } from 'astro:content';
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   .slice(0, 3);
+
+const sections = [
+  {
+    title: 'Danh mục sản phẩm 1',
+    products: [
+      { name: 'Sản phẩm mẫu 1', price: '10,200,000 đ', image: '' },
+      { name: 'Sản phẩm mẫu 2', price: '10,800,000 đ', image: '' },
+      { name: 'Sản phẩm mẫu 3', price: '9,800,000 đ', image: '' },
+      { name: 'Sản phẩm mẫu 4', price: '9,600,000 đ', image: '' },
+    ],
+  },
+  {
+    title: 'Danh mục sản phẩm 2',
+    products: [
+      { name: 'Sản phẩm mẫu 5', price: '1,516,000 đ', image: '' },
+      { name: 'Sản phẩm mẫu 6', price: '18,900,000 đ', image: '' },
+      { name: 'Sản phẩm mẫu 7', price: '16,900,000 đ', image: '' },
+      { name: 'Sản phẩm mẫu 8', price: '18,899,000 đ', oldPrice: '19,900,000 đ', image: '' },
+    ],
+  },
+];
 ---
 
 <BaseLayout
-  title="Trợ Lực Điện LKEbike - Nơi mua xe đạp điện trợ lực độc lạ"
-  description="trolucdien.vn chuyên cung cấp xe đạp điện trợ lực, xe điện gấp gọn và thời trang từ nhiều thương hiệu. Liên hệ hotline 0768 640 918 để nhận ưu đãi ngay!"
+  title="Trợ Lực Điện LKEbike - Xe Đạp Điện Trợ Lực & Xe Điện Thời Trang Độc Lạ"
+  description="trolucdien.vn chuyên cung cấp xe đạp điện trợ lực, xe điện gấp gọn và thời trang từ nhiều thương hiệu khác nhau như Vetanya, HJM Bike, Zeeho. Liên hệ hotline 0768 640 918 để nhận ưu đãi ngay!"
+  wide={true}
 >
-  <h1>Xe Đạp Điện Trợ Lực & Xe Điện Thời Trang | LKEbike</h1>
-  <p>LKEbike (trolucdien.vn) là shop chuyên cung cấp các dòng xe đạp điện trợ lực, xe điện gấp gọn bỏ cốp ô tô và xe điện thời trang độc lạ từ nhiều thương hiệu.
-Khách hàng ưu tiên lựa chọn chúng tôi vì:
-• Sản phẩm đón đầu xu hướng: Đầy đủ các phiên bản mở tốc mạnh mẽ, tích hợp công nghệ hiện đại (TCS, NFC, Pin Lithium cao cấp).
-• Tối ưu trải nghiệm: Xe vận hành bền bỉ, tiết kiệm điện năng, kiểu dáng thời trang khẳng định phong cách riêng.
-• Dịch vụ tận tâm: Chính sách bảo hành uy tín, đầy đủ phụ kiện thay thế và hỗ trợ tư vấn nhanh chóng qua Zalo/Hotline.</p>
+  <section class="hero">
+    <div class="container">
+      <h1>Trợ Lực Điện LKEbike</h1>
+      <p class="sub">Mua Xe Đạp Điện Trợ Lực & Xe Điện Thông Minh Tại TP.HCM</p>
+      <p>
+        Chúng tôi chuyên cung cấp sản phẩm chất lượng. Uy tín – Chất lượng – Dịch vụ tốt.
+      </p>
+      <a class="btn" href="/lien-he/">Mua ngay ›</a>
+    </div>
+  </section>
 
-  <h2>Bài viết mới nhất</h2>
-  <ul class="post-list">
-    {posts.map((post) => (
-      <li>
-        <a href={`/blog/${post.id}/`}>{post.data.title}</a>
-        <div class="post-meta">
-          {post.data.pubDate.toLocaleDateString('vi-VN')}
+  {sections.map((section) => (
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title"><span class="ribbon">{section.title}</span></h2>
+          <a class="section-more" href="/">Xem thêm</a>
         </div>
-        <p>{post.data.description}</p>
-      </li>
-    ))}
-  </ul>
-  <p><a href="/blog/">Xem tất cả bài viết</a></p>
+        <div class="grid-4">
+          {section.products.map((p) => (
+            <article class="product">
+              <div class="product-img">
+                {p.image ? <img src={p.image} alt={p.name} loading="lazy" /> : <span>Ảnh sản phẩm</span>}
+              </div>
+              <h3>{p.name}</h3>
+              <p class="price">
+                {p.oldPrice && <del>{p.oldPrice}</del>}
+                {p.price}
+              </p>
+              <a class="btn btn-navy" href="/lien-he/">Liên hệ đặt hàng</a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <section class="section news-section">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title"><span class="ribbon">Tin tức – Sự kiện</span></h2>
+        <a class="section-more" href="/blog/">Xem thêm</a>
+      </div>
+      <div class="grid-3">
+        {posts.map((post) => (
+          <article class="news-card">
+            <div class="thumb"></div>
+            <div class="body">
+              <h3><a href={`/blog/${post.id}/`}>{post.data.title}</a></h3>
+              <p>{post.data.description}</p>
+              <a class="link-more" href={`/blog/${post.id}/`}>Xem thêm</a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
 </BaseLayout>

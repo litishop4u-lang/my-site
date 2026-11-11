@@ -9,6 +9,7 @@ interface Props {
   image?: string;
   type?: 'website' | 'article';
   noindex?: boolean;
+  wide?: boolean;
   schema?: Record<string, unknown>;
   publishedTime?: Date;
   modifiedTime?: Date;
@@ -22,6 +23,7 @@ const {
   image = '/og-default.jpg',
   type = 'website',
   noindex = false,
+  wide = false,
   schema,
   publishedTime,
   modifiedTime,
@@ -78,7 +80,7 @@ const websiteSchema = {
   </head>
   <body>
     <Header />
-    <main class="container">
+    <main class={wide ? undefined : 'container'}>
       <slot />
     </main>
     <Footer />
