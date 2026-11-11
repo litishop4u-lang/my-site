@@ -539,4 +539,48 @@
 
   renderGallery();
   renderSpecs();
+
+    /* ===== Nút + thêm nhanh danh mục / thương hiệu ===== */
+  document.querySelectorAll('[data-add-tax]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const type = btn.getAttribute('data-add-tax');
+      const label = type === 'brand' ? 'thương hiệu' : 'danh mục';
+      const name = window.prompt('Nhập tên ' + label + ' mới:');
+      if (!name || !name.trim()) return;
+
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/taxonomy/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: type, name: name.trim() }),
+        });
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(result.error || 'Không thêm được.');
+
+        const select = document.getElementById(type === 'brand' ? 'brand_id' : 'category_id');
+        let option = Array.from(select.options).find((o) => o.value === String(result.id));
+        if (!option) {
+          option = document.createElement('option');
+          option.value = String(result.id);
+          option.textContent = result.name;
+          select.appendChild(option);
+        }
+        select.value = String(result.id);
+        select.classList.add('adm-just-added');
+        setTimeout(() => select.classList.remove('adm-just-added'), 1600);
+
+        setStatus(
+          result.existed
+            ? 'Đã có sẵn ' + label + ' "' + result.name + '", đã chọn cho sản phẩm.'
+            : 'Đã thêm ' + label + ' "' + result.name + '" và chọn cho sản phẩm.',
+        );
+      } catch (err) {
+        alert('Lỗi: ' + (err && err.message ? err.message : 'không thêm được.'));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
 })();
+

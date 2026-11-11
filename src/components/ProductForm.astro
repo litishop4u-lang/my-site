@@ -37,28 +37,29 @@ const initialData = JSON.stringify({
     </div>
 
     <div class="adm-field">
-      <label for="slug">Đường dẫn (để trống sẽ tự tạo từ tên)</label>
-      <input id="slug" name="slug" type="text" value={product.slug} />
-    </div>
-
-    <div class="adm-field">
       <label for="category_id">Danh mục</label>
-      <select id="category_id" name="category_id">
-        <option value="">-- Chọn danh mục --</option>
-        {categories.map((c) => (
-          <option value={c.id} selected={product.category_id === c.id}>{c.name}</option>
-        ))}
-      </select>
+      <div class="adm-select-row">
+        <select id="category_id" name="category_id">
+          <option value="">-- Chọn danh mục --</option>
+          {categories.map((c) => (
+            <option value={c.id} selected={product.category_id === c.id}>{c.name}</option>
+          ))}
+        </select>
+        <button type="button" class="adm-plus" data-add-tax="category" title="Thêm danh mục mới" aria-label="Thêm danh mục mới">+</button>
+      </div>
     </div>
 
     <div class="adm-field">
       <label for="brand_id">Thương hiệu</label>
-      <select id="brand_id" name="brand_id">
-        <option value="">-- Chọn thương hiệu --</option>
-        {brands.map((b) => (
-          <option value={b.id} selected={product.brand_id === b.id}>{b.name}</option>
-        ))}
-      </select>
+      <div class="adm-select-row">
+        <select id="brand_id" name="brand_id">
+          <option value="">-- Chọn thương hiệu --</option>
+          {brands.map((b) => (
+            <option value={b.id} selected={product.brand_id === b.id}>{b.name}</option>
+          ))}
+        </select>
+        <button type="button" class="adm-plus" data-add-tax="brand" title="Thêm thương hiệu mới" aria-label="Thêm thương hiệu mới">+</button>
+      </div>
     </div>
 
     <div class="adm-field">
