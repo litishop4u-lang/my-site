@@ -222,3 +222,91 @@
     grid-template-columns: 1fr;
   }
 }
+
+.adm-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 1rem;
+}
+
+.adm-add label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.adm-add .adm-check {
+  margin-bottom: 0;
+  padding-bottom: 0.6rem;
+}
+
+.adm-add input[type='text'],
+.adm-add input[type='number'] {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.adm-list {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0.5rem 1rem;
+}
+
+.adm-rowform {
+  display: grid;
+  grid-template-columns: 2fr 1.6fr 80px 120px 90px auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #eef0f4;
+  margin: 0;
+}
+
+.adm-rowform-brand {
+  grid-template-columns: 2fr 1.6fr 90px auto;
+}
+
+.adm-rowform.head {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #5f6368;
+  font-weight: 700;
+}
+
+.adm-rowform input[type='text'],
+.adm-rowform input[type='number'] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.adm-rowform .adm-check {
+  font-weight: 400 !important;
+}
+
+.adm-rowform .btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+@media (max-width: 800px) {
+  .adm-rowform,
+  .adm-rowform-brand {
+    grid-template-columns: 1fr 1fr;
+  }
+  .adm-rowform.head {
+    display: none;
+  }
+}

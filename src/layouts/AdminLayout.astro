@@ -140,6 +140,9 @@ const path = Astro.url.pathname;
         <nav>
           <a href="/admin/" aria-current={path === '/admin/' ? 'page' : undefined}>Tổng quan</a>
           <a href="/admin/san-pham/" aria-current={path.startsWith('/admin/san-pham/') ? 'page' : undefined}>Sản phẩm</a>
+          <a href="/admin/danh-muc/" aria-current={path.startsWith('/admin/danh-muc/') ? 'page' : undefined}>Danh mục</a>
+          <a href="/admin/thuong-hieu/" aria-current={path.startsWith('/admin/thuong-hieu/') ? 'page' : undefined}>Thương hiệu</a>
+          <a href="/admin/cai-dat/" aria-current={path.startsWith('/admin/cai-dat/') ? 'page' : undefined}>Cài đặt</a>
           <a href="/" target="_blank" rel="noopener">Xem website</a>
         </nav>
         <form method="post" action="/admin/logout/">

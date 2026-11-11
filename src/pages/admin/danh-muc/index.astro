@@ -1,0 +1,111 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+import { slugify } from '../../../lib/slug';
+import { uniqueTaxSlug } from '../../../lib/admin-taxonomy';
+
+export const prerender = false;
+
+type Row = {
+  id: number;
+  name: string;
+  slug: string;
+  sort_order: number;
+  show_on_home: number;
+  product_count: number;
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  const id = Number(form.get('id'));
+  const name = String(form.get('name') ?? '').trim();
+  const slugInput = String(form.get('slug') ?? '').trim();
+  const sortOrder = parseInt(String(form.get('sort_order') ?? '0'), 10) || 0;
+  const showOnHome = form.get('show_on_home') ? 1 : 0;
+
+  if (action === 'add') {
+    if (!name) return Astro.redirect('/admin/danh-muc/?msg=empty');
+    const slug = await uniqueTaxSlug('categories', slugify(slugInput || name));
+    await env.DB.prepare(
+      'INSERT INTO categories (name, slug, sort_order, show_on_home) VALUES (?, ?, ?, ?)',
+    )
+      .bind(name, slug, sortOrder, showOnHome)
+      .run();
+  } else if (Number.isInteger(id) && id > 0) {
+    if (action === 'update') {
+      if (!name) return Astro.redirect('/admin/danh-muc/?msg=empty');
+      const slug = await uniqueTaxSlug('categories', slugify(slugInput || name), id);
+      await env.DB.prepare(
+        'UPDATE categories SET name = ?, slug = ?, sort_order = ?, show_on_home = ? WHERE id = ?',
+      )
+        .bind(name, slug, sortOrder, showOnHome, id)
+        .run();
+    } else if (action === 'delete') {
+      await env.DB.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
+    }
+  }
+
+  return Astro.redirect('/admin/danh-muc/?msg=saved');
+}
+
+const msg = Astro.url.searchParams.get('msg');
+
+const { results } = await env.DB.prepare(
+  `SELECT c.id, c.name, c.slug, c.sort_order, c.show_on_home,
+          (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
+   FROM categories c
+   ORDER BY c.sort_order, c.id`,
+).all<Row>();
+
+const nextOrder = results.reduce((max, r) => Math.max(max, r.sort_order), 0) + 1;
+---
+
+<AdminLayout title="Danh mục">
+  <h1>Danh mục</h1>
+
+  {msg === 'saved' && <div class="adm-flash">Đã lưu.</div>}
+  {msg === 'empty' && <div class="adm-error">Vui lòng nhập tên.</div>}
+
+  <form method="post" class="adm-add">
+    <input type="hidden" name="action" value="add" />
+    <div>
+      <label for="new-name">Tên danh mục mới</label>
+      <input id="new-name" name="name" type="text" required />
+    </div>
+    <div>
+      <label for="new-order">Thứ tự</label>
+      <input id="new-order" name="sort_order" type="number" value={nextOrder} />
+    </div>
+    <label class="adm-check"><input type="checkbox" name="show_on_home" checked /> Hiện ở trang chủ</label>
+    <button class="adm-btn" type="submit">+ Thêm danh mục</button>
+  </form>
+
+  <div class="adm-list">
+    <div class="adm-rowform head">
+      <span>Tên</span><span>Đường dẫn</span><span>Thứ tự</span><span>Trang chủ</span><span>Sản phẩm</span><span></span>
+    </div>
+    {results.length === 0 && <p class="adm-empty">Chưa có danh mục nào.</p>}
+    {results.map((c) => (
+      <form method="post" class="adm-rowform">
+        <input type="hidden" name="id" value={c.id} />
+        <input name="name" type="text" value={c.name} required />
+        <input name="slug" type="text" value={c.slug} />
+        <input name="sort_order" type="number" value={c.sort_order} />
+        <label class="adm-check"><input type="checkbox" name="show_on_home" checked={c.show_on_home === 1} /> Hiện</label>
+        <span>{c.product_count}</span>
+        <div class="btns">
+          <button class="adm-icon-btn" type="submit" name="action" value="update">Lưu</button>
+          <button
+            class="adm-icon-btn danger"
+            type="submit"
+            name="action"
+            value="delete"
+            onclick="return confirm('Xoá danh mục này? Các sản phẩm trong danh mục sẽ chưa có danh mục.')"
+          >Xoá</button>
+        </div>
+      </form>
+    ))}
+  </div>
+  <p class="adm-note">Đổi "Đường dẫn" sẽ làm link cũ của danh mục không còn truy cập được. Chỉ đổi khi thật cần.</p>
+</AdminLayout>

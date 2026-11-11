@@ -1,0 +1,23 @@
+---
+interface Props {
+  name: string;
+  label: string;
+  value?: string;
+  maxSize?: number;
+}
+
+const { name, label, value = '', maxSize = 1600 } = Astro.props;
+---
+
+<div class="adm-field adm-span2" data-image-field data-max={maxSize}>
+  <label>{label}</label>
+  <div class="adm-image-box">
+    <img class="adm-image-preview" data-preview alt="Ảnh xem trước" src={value || undefined} hidden={!value} />
+    <div>
+      <input type="file" accept="image/*" data-file />
+      <div class="adm-hint" data-status></div>
+      <button class="adm-icon-btn danger" type="button" data-remove hidden={!value}>Xoá ảnh</button>
+    </div>
+  </div>
+  <input type="hidden" name={name} value={value} data-value />
+</div>

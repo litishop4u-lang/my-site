@@ -4,3 +4,4 @@ Disallow: /admin/
 Disallow: /api/
 
 Sitemap: https://trolucdien.vn/sitemap-index.xml
+Sitemap: https://trolucdien.vn/sitemap-content.xml

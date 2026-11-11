@@ -1,0 +1,186 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ImageField from '../../components/ImageField.astro';
+import { env } from 'cloudflare:workers';
+import { getSettings } from '../../lib/db';
+
+export const prerender = false;
+
+const TEXT_FIELDS = [
+  'site_name',
+  'phone',
+  'zalo',
+  'email',
+  'address',
+  'hero_title',
+  'hero_subtitle',
+  'hero_text',
+] as const;
+const IMAGE_FIELDS = ['logo', 'hero_image'] as const;
+const MEDIA_PATTERN = /^\/media\/\?k=[a-z0-9\-/]+\.(jpg|png|webp|gif)$/;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const entries: [string, string][] = [];
+
+  for (const key of TEXT_FIELDS) {
+    entries.push([key, String(form.get(key) ?? '').trim().slice(0, 1000)]);
+  }
+  for (const key of IMAGE_FIELDS) {
+    const value = String(form.get(key) ?? '').trim();
+    entries.push([key, MEDIA_PATTERN.test(value) ? value : '']);
+  }
+
+  await env.DB.batch(
+    entries.map(([key, value]) =>
+      env.DB.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      ).bind(key, value),
+    ),
+  );
+
+  return Astro.redirect('/admin/cai-dat/?saved=1');
+}
+
+const s = await getSettings();
+const saved = Astro.url.searchParams.get('saved');
+---
+
+<AdminLayout title="Cài đặt website">
+  <h1>Cài đặt website</h1>
+  {saved && <div class="adm-flash">Đã lưu cài đặt.</div>}
+
+  <form method="post" class="adm-form">
+    <div class="adm-form-grid">
+      <div class="adm-field adm-span2">
+        <label for="site_name">Tên cửa hàng / thương hiệu</label>
+        <input id="site_name" name="site_name" type="text" value={s.site_name ?? ''} />
+      </div>
+
+      <ImageField
+        name="logo"
+        label="Logo (hiện ở đầu trang trên nền xanh đậm, nên dùng ảnh nền trong suốt, màu sáng)"
+        value={s.logo ?? ''}
+        maxSize={800}
+      />
+
+      <div class="adm-field">
+        <label for="phone">Số điện thoại</label>
+        <input id="phone" name="phone" type="text" value={s.phone ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="zalo">Số Zalo</label>
+        <input id="zalo" name="zalo" type="text" value={s.zalo ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="text" value={s.email ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="address">Địa chỉ</label>
+        <input id="address" name="address" type="text" value={s.address ?? ''} />
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="hero_title">Banner trang chủ: tiêu đề lớn</label>
+        <input id="hero_title" name="hero_title" type="text" value={s.hero_title ?? ''} />
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="hero_subtitle">Banner trang chủ: dòng phụ (nên chứa từ khóa chính)</label>
+        <input id="hero_subtitle" name="hero_subtitle" type="text" value={s.hero_subtitle ?? ''} />
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="hero_text">Banner trang chủ: đoạn giới thiệu (cũng là mô tả hiện trên Google)</label>
+        <textarea id="hero_text" name="hero_text" rows="3">{s.hero_text ?? ''}</textarea>
+      </div>
+
+      <ImageField
+        name="hero_image"
+        label="Ảnh nền banner trang chủ (nên dùng ảnh ngang, rộng)"
+        value={s.hero_image ?? ''}
+        maxSize={2000}
+      />
+    </div>
+
+    <div class="adm-actions">
+      <button id="submit-btn" class="adm-btn" type="submit">Lưu cài đặt</button>
+    </div>
+  </form>
+</AdminLayout>
+
+<script is:inline>
+  (function () {
+    var submitBtn = document.getElementById('submit-btn');
+
+    async function compress(file, maxSize) {
+      if (file.type === 'image/gif') return file;
+      var bitmap = await createImageBitmap(file);
+      var scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+      var w = Math.round(bitmap.width * scale);
+      var h = Math.round(bitmap.height * scale);
+      var canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      var blob = await new Promise(function (resolve) {
+        canvas.toBlob(resolve, 'image/webp', 0.85);
+      });
+      if (!blob) return file;
+      return new File([blob], 'image.webp', { type: 'image/webp' });
+    }
+
+    document.querySelectorAll('[data-image-field]').forEach(function (box) {
+      var fileInput = box.querySelector('[data-file]');
+      var hidden = box.querySelector('[data-value]');
+      var preview = box.querySelector('[data-preview]');
+      var statusEl = box.querySelector('[data-status]');
+      var removeBtn = box.querySelector('[data-remove]');
+      var maxSize = Number(box.getAttribute('data-max')) || 1600;
+
+      function showImage(url) {
+        hidden.value = url || '';
+        if (url) {
+          preview.src = url;
+          preview.hidden = false;
+          removeBtn.hidden = false;
+        } else {
+          preview.removeAttribute('src');
+          preview.hidden = true;
+          removeBtn.hidden = true;
+        }
+      }
+
+      fileInput.addEventListener('change', async function () {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        statusEl.textContent = 'Đang tải ảnh lên...';
+        submitBtn.disabled = true;
+        try {
+          var small = await compress(file, maxSize);
+          var data = new FormData();
+          data.append('file', small);
+          var res = await fetch('/api/admin/upload/', { method: 'POST', body: data });
+          var result = await res.json();
+          if (!res.ok) throw new Error(result.error || 'Tải ảnh thất bại.');
+          showImage(result.url);
+          statusEl.textContent = 'Đã tải ảnh lên. Nhớ bấm Lưu cài đặt bên dưới.';
+        } catch (err) {
+          statusEl.textContent = 'Lỗi: ' + (err && err.message ? err.message : 'không tải được ảnh.');
+        } finally {
+          submitBtn.disabled = false;
+          fileInput.value = '';
+        }
+      });
+
+      removeBtn.addEventListener('click', function () {
+        showImage('');
+        statusEl.textContent = '';
+      });
+    });
+  })();
+</script>
