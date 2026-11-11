@@ -51,7 +51,7 @@ const isShop = path.startsWith('/danh-muc/') || path.startsWith('/san-pham/');
       <a href="/lien-he/" aria-current={isContact ? 'page' : undefined}>Liên hệ</a>
     </nav>
 
-    {phone && <a class="header-phone" href={`tel:${phone.replace(/\s/g, '')}`}>Gọi: {phone}</a>}
+    {phone && <a class="header-phone" href={`tel:${phone.replace(/\s/g, '')}`}>Hotline : {phone}</a>}
   </div>
 </header>
 

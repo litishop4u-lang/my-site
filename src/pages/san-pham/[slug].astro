@@ -128,7 +128,7 @@ const productSchema = product
               {product.price > 0 ? formatPrice(product.price) : 'Liên hệ để biết giá'}
             </p>
             <div class="actions">
-              {phone && <a class="btn" href={`tel:${phone.replace(/\s/g, '')}`}>Gọi {phone}</a>}
+              {phone && <a class="btn" href={`tel:${phone.replace(/\s/g, '')}`} aria-label={`Gọi ${phone}`}>Call</a>}
               {zalo && (
                 <a class="btn btn-outline" href={`https://zalo.me/${zalo.replace(/\s/g, '')}`} rel="noopener" target="_blank">
                   Nhắn Zalo
