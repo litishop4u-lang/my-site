@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductContent from '../../components/ProductContent.astro';
 import { getProductBySlug, getSettings, formatPrice } from '../../lib/db';
+import { parseImages, parseSpecs, parseBlocks, blocksToPlainText } from '../../lib/content';
 
 const { slug } = Astro.params;
 const product = slug ? await getProductBySlug(slug) : null;
@@ -14,7 +16,11 @@ const phone = settings.phone || '';
 const zalo = settings.zalo || '';
 const url = new URL(Astro.url.pathname, Astro.site).toString();
 
-const plainDescription = (product?.description ?? '').replace(/\s+/g, ' ').trim();
+const images = product ? parseImages(product.images, product.image) : [];
+const specs = product ? parseSpecs(product.specs).filter((s) => s.label && s.value) : [];
+const blocks = product ? parseBlocks(product.description) : [];
+const plainDescription = blocksToPlainText(blocks);
+
 const metaDescription = product
   ? plainDescription.slice(0, 155) ||
     `${product.name}. Liên hệ để được tư vấn và báo giá tốt nhất.`
@@ -27,7 +33,7 @@ const productSchema = product
       name: product.name,
       description: plainDescription || undefined,
       sku: product.sku || undefined,
-      image: product.image ? new URL(product.image, Astro.site).toString() : undefined,
+      image: images.length > 0 ? images.map((u) => new URL(u, Astro.site).toString()) : undefined,
       brand: product.brand_name ? { '@type': 'Brand', name: product.brand_name } : undefined,
       offers:
         product.price > 0
@@ -46,49 +52,99 @@ const productSchema = product
 <BaseLayout
   title={product ? product.name : 'Không tìm thấy sản phẩm'}
   description={metaDescription}
-  image={product?.image || undefined}
+  image={images[0]}
   noindex={!product}
   wide={true}
   schema={productSchema}
 >
   <div class="container page-wide">
     {product ? (
-      <article class="product-detail">
-        <div class="product-gallery">
-          {product.image ? (
-            <img src={product.image} alt={product.name} />
-          ) : (
-            <span>Chưa có ảnh</span>
-          )}
-        </div>
-        <div class="product-info">
-          <nav class="breadcrumb" aria-label="Đường dẫn">
-            <a href="/">Trang chủ</a>
-            {product.category_slug && (
-              <>
-                {' / '}
-                <a href={`/danh-muc/${product.category_slug}/`}>{product.category_name}</a>
-              </>
-            )}
-          </nav>
-          <h1>{product.name}</h1>
-          {product.brand_name && <p class="meta-line">Thương hiệu: <strong>{product.brand_name}</strong></p>}
-          {product.sku && <p class="meta-line">Mã sản phẩm: {product.sku}</p>}
-          <p class="price price-lg">
-            {product.old_price > product.price && <del>{formatPrice(product.old_price)}</del>}
-            {product.price > 0 ? formatPrice(product.price) : 'Liên hệ để biết giá'}
-          </p>
-          <div class="actions">
-            {phone && <a class="btn" href={`tel:${phone.replace(/\s/g, '')}`}>Gọi {phone}</a>}
-            {zalo && (
-              <a class="btn btn-outline" href={`https://zalo.me/${zalo.replace(/\s/g, '')}`} rel="noopener" target="_blank">
-                Nhắn Zalo
-              </a>
+      <>
+        <article class="product-detail">
+          <div class="product-media">
+            <div class="gallery" data-gallery>
+              <div class="gallery-main">
+                {images.length > 0 ? (
+                  <img data-gallery-main src={images[0]} alt={product.name} />
+                ) : (
+                  <span>Chưa có ảnh</span>
+                )}
+                {images.length > 1 && (
+                  <>
+                    <button type="button" class="gallery-nav prev" data-gallery-prev aria-label="Ảnh trước">‹</button>
+                    <button type="button" class="gallery-nav next" data-gallery-next aria-label="Ảnh sau">›</button>
+                  </>
+                )}
+              </div>
+              {images.length > 1 && (
+                <div class="gallery-thumbs" data-gallery-thumbs>
+                  {images.map((src, i) => (
+                    <button
+                      type="button"
+                      class:list={['gallery-thumb', { active: i === 0 }]}
+                      data-gallery-thumb
+                      data-src={src}
+                      aria-label={`Xem ảnh ${i + 1}`}
+                    >
+                      <img src={src} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div class="product-info">
+            <nav class="breadcrumb" aria-label="Đường dẫn">
+              <a href="/">Trang chủ</a>
+              {product.category_slug && (
+                <>
+                  {' / '}
+                  <a href={`/danh-muc/${product.category_slug}/`}>{product.category_name}</a>
+                </>
+              )}
+            </nav>
+            <h1>{product.name}</h1>
+            {product.brand_name && <p class="meta-line">Thương hiệu: <strong>{product.brand_name}</strong></p>}
+            {product.sku && <p class="meta-line">Mã sản phẩm: {product.sku}</p>}
+            <p class="price price-lg">
+              {product.old_price > product.price && <del>{formatPrice(product.old_price)}</del>}
+              {product.price > 0 ? formatPrice(product.price) : 'Liên hệ để biết giá'}
+            </p>
+            <div class="actions">
+              {phone && <a class="btn" href={`tel:${phone.replace(/\s/g, '')}`}>Gọi {phone}</a>}
+              {zalo && (
+                <a class="btn btn-outline" href={`https://zalo.me/${zalo.replace(/\s/g, '')}`} rel="noopener" target="_blank">
+                  Nhắn Zalo
+                </a>
+              )}
+            </div>
+
+            {specs.length > 0 && (
+              <section class="spec-box">
+                <h2>Thông số kỹ thuật</h2>
+                <table class="spec-table">
+                  <tbody>
+                    {specs.map((s) => (
+                      <tr>
+                        <th scope="row">{s.label}</th>
+                        <td>{s.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
             )}
           </div>
-          {product.description && <div class="product-desc">{product.description}</div>}
-        </div>
-      </article>
+        </article>
+
+        {blocks.length > 0 && (
+          <section class="product-description">
+            <h2>Mô tả sản phẩm</h2>
+            <ProductContent blocks={blocks} alt={product.name} />
+          </section>
+        )}
+      </>
     ) : (
       <>
         <h1>Không tìm thấy sản phẩm</h1>
@@ -96,4 +152,44 @@ const productSchema = product
       </>
     )}
   </div>
+
+  <script is:inline>
+    (function () {
+      var g = document.querySelector('[data-gallery]');
+      if (!g) return;
+      var main = g.querySelector('[data-gallery-main]');
+      var box = g.querySelector('[data-gallery-thumbs]');
+      var thumbs = Array.prototype.slice.call(g.querySelectorAll('[data-gallery-thumb]'));
+      if (!main || thumbs.length < 2) return;
+      var index = 0;
+
+      function show(i) {
+        index = (i + thumbs.length) % thumbs.length;
+        main.src = thumbs[index].getAttribute('data-src');
+        thumbs.forEach(function (t, n) {
+          t.classList.toggle('active', n === index);
+        });
+        if (box) {
+          var t = thumbs[index];
+          box.scrollTo({ left: t.offsetLeft - box.clientWidth / 2 + t.clientWidth / 2, behavior: 'smooth' });
+        }
+      }
+
+      thumbs.forEach(function (t, n) {
+        t.addEventListener('click', function () { show(n); });
+      });
+      g.querySelector('[data-gallery-prev]').addEventListener('click', function () { show(index - 1); });
+      g.querySelector('[data-gallery-next]').addEventListener('click', function () { show(index + 1); });
+
+      var startX = null;
+      var area = g.querySelector('.gallery-main');
+      area.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+      area.addEventListener('touchend', function (e) {
+        if (startX === null) return;
+        var dx = e.changedTouches[0].clientX - startX;
+        startX = null;
+        if (Math.abs(dx) > 40) show(dx < 0 ? index + 1 : index - 1);
+      });
+    })();
+  </script>
 </BaseLayout>

@@ -1,6 +1,7 @@
 ---
 import { formatPrice } from '../lib/db';
 import type { Product } from '../lib/db';
+import { parseImages } from '../lib/content';
 
 interface Props {
   product: Product;
@@ -8,12 +9,18 @@ interface Props {
 
 const { product } = Astro.props;
 const href = `/san-pham/${product.slug}/`;
+const images = parseImages(product.images, product.image);
 ---
 
 <article class="product">
   <a class="product-img" href={href}>
-    {product.image ? (
-      <img src={product.image} alt={product.name} loading="lazy" />
+    {images[0] ? (
+      <>
+        <img class="img-main" src={images[0]} alt={product.name} loading="lazy" />
+        {images[1] && (
+          <img class="img-hover" src={images[1]} alt="" loading="lazy" aria-hidden="true" />
+        )}
+      </>
     ) : (
       <span>Chưa có ảnh</span>
     )}

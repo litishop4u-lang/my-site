@@ -1,0 +1,2 @@
+ALTER TABLE products ADD COLUMN images TEXT;
+ALTER TABLE products ADD COLUMN specs TEXT;

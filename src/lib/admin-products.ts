@@ -1,5 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { slugify } from './slug';
+import { parseImages, parseSpecs, parseBlocks } from './content';
+import type { Spec } from './content';
 
 export type Brand = {
   id: number;
@@ -16,6 +18,8 @@ export type ProductInput = {
   price: number;
   old_price: number;
   image: string;
+  images: string[];
+  specs: Spec[];
   description: string;
   is_active: number;
 };
@@ -35,6 +39,21 @@ export type ProductRow = {
   brand_name: string | null;
 };
 
+const DEFAULT_SPEC_LABELS = [
+  'Hãng sản xuất',
+  'Xuất xứ',
+  'Tải trọng',
+  'Tốc độ',
+  'Bình ắc quy',
+  'Động cơ',
+  'Pin lithium',
+  'Kích thước',
+];
+
+export function defaultSpecs(): Spec[] {
+  return DEFAULT_SPEC_LABELS.map((label) => ({ label, value: '' }));
+}
+
 export function emptyProduct(): ProductInput {
   return {
     name: '',
@@ -45,6 +64,8 @@ export function emptyProduct(): ProductInput {
     price: 0,
     old_price: 0,
     image: '',
+    images: [],
+    specs: defaultSpecs(),
     description: '',
     is_active: 1,
   };
@@ -62,8 +83,9 @@ function toId(value: FormDataEntryValue | null): number | null {
 
 export function parseProductForm(form: FormData): ProductInput {
   const name = String(form.get('name') ?? '').trim();
-  const rawImage = String(form.get('image') ?? '').trim();
-  const image = rawImage.startsWith('/media/') || rawImage.startsWith('https://') ? rawImage : '';
+  const images = parseImages(String(form.get('images') ?? ''));
+  const specs = parseSpecs(String(form.get('specs') ?? ''));
+  const blocks = parseBlocks(String(form.get('description') ?? ''));
 
   return {
     name,
@@ -73,8 +95,10 @@ export function parseProductForm(form: FormData): ProductInput {
     brand_id: toId(form.get('brand_id')),
     price: toMoney(form.get('price')),
     old_price: toMoney(form.get('old_price')),
-    image,
-    description: String(form.get('description') ?? '').trim(),
+    image: images[0] ?? '',
+    images,
+    specs,
+    description: blocks.length > 0 ? JSON.stringify(blocks) : '',
     is_active: form.get('is_active') ? 1 : 0,
   };
 }
@@ -133,6 +157,10 @@ export async function getProductById(id: number): Promise<(ProductInput & { id: 
     .first<Record<string, unknown>>();
   if (!row) return null;
 
+  const legacyImage = String(row.image ?? '');
+  const images = parseImages(String(row.images ?? ''), legacyImage || null);
+  const specs = parseSpecs(String(row.specs ?? ''));
+
   return {
     id: Number(row.id),
     name: String(row.name ?? ''),
@@ -142,7 +170,9 @@ export async function getProductById(id: number): Promise<(ProductInput & { id: 
     brand_id: row.brand_id == null ? null : Number(row.brand_id),
     price: Number(row.price ?? 0),
     old_price: Number(row.old_price ?? 0),
-    image: String(row.image ?? ''),
+    image: images[0] ?? '',
+    images,
+    specs: specs.length > 0 ? specs : defaultSpecs(),
     description: String(row.description ?? ''),
     is_active: Number(row.is_active ?? 1),
   };
@@ -151,8 +181,8 @@ export async function getProductById(id: number): Promise<(ProductInput & { id: 
 export async function insertProduct(p: ProductInput): Promise<void> {
   await env.DB.prepare(
     `INSERT INTO products
-      (name, slug, sku, category_id, brand_id, price, old_price, image, description, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (name, slug, sku, category_id, brand_id, price, old_price, image, images, specs, description, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       p.name,
@@ -163,6 +193,8 @@ export async function insertProduct(p: ProductInput): Promise<void> {
       p.price,
       p.old_price,
       p.image || null,
+      p.images.length > 0 ? JSON.stringify(p.images) : null,
+      p.specs.length > 0 ? JSON.stringify(p.specs) : null,
       p.description || null,
       p.is_active,
     )
@@ -173,7 +205,7 @@ export async function updateProduct(id: number, p: ProductInput): Promise<void> 
   await env.DB.prepare(
     `UPDATE products SET
        name = ?, slug = ?, sku = ?, category_id = ?, brand_id = ?, price = ?, old_price = ?,
-       image = ?, description = ?, is_active = ?, updated_at = datetime('now')
+       image = ?, images = ?, specs = ?, description = ?, is_active = ?, updated_at = datetime('now')
      WHERE id = ?`,
   )
     .bind(
@@ -185,6 +217,8 @@ export async function updateProduct(id: number, p: ProductInput): Promise<void> 
       p.price,
       p.old_price,
       p.image || null,
+      p.images.length > 0 ? JSON.stringify(p.images) : null,
+      p.specs.length > 0 ? JSON.stringify(p.specs) : null,
       p.description || null,
       p.is_active,
       id,

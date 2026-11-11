@@ -1,0 +1,50 @@
+---
+import type { Block } from '../lib/content';
+
+interface Props {
+  blocks: Block[];
+  alt?: string;
+}
+
+const { blocks, alt = '' } = Astro.props;
+---
+
+<div class="rich">
+  {blocks.map((b) => {
+    if (b.type === 'heading') {
+      return <h3>{b.text}</h3>;
+    }
+    if (b.type === 'text') {
+      return b.text.split(/\n{2,}/).map((para) => <p>{para}</p>);
+    }
+    if (b.type === 'image') {
+      return (
+        <figure>
+          <img src={b.url} alt={alt} loading="lazy" />
+        </figure>
+      );
+    }
+    if (b.type === 'video') {
+      return (
+        <div class="video-wrap">
+          <video src={b.url} controls preload="metadata" playsinline></video>
+        </div>
+      );
+    }
+    if (b.type === 'youtube') {
+      return (
+        <div class="embed-wrap">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${b.id}`}
+            title="Video YouTube"
+            loading="lazy"
+            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowfullscreen
+            referrerpolicy="strict-origin-when-cross-origin"
+          ></iframe>
+        </div>
+      );
+    }
+    return null;
+  })}
+</div>
