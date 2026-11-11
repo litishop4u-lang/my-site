@@ -27,7 +27,7 @@ const directionsUrl = address
   : '';
 const policies = (settings.policies || '')
   .split(/\r?\n/)
-  .map((line) => line.trim())
+  .map((line) => line.replace(/^[-•*+–]\s*/, '').trim())
   .filter(Boolean)
   .slice(0, 12);
 ---

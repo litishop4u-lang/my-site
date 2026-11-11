@@ -153,6 +153,9 @@ const productSchema = product
               </section>
             )}
           </div>
+          <aside class="product-side">
+            <StoreInfo settings={settings} />
+          </aside>  
         </article>
 
         <div class="detail-lower">
@@ -166,7 +169,7 @@ const productSchema = product
           </div>
 
           <aside class="detail-side">
-          <StoreInfo settings={settings} />
+          
             {relatedItems.length > 0 && (
               <section class="side-box">
                 <h2>Sản phẩm liên quan</h2>
