@@ -1,5 +1,14 @@
 ---
+import type { Settings } from '../lib/db';
+
+interface Props {
+  settings: Settings;
+}
+
+const { settings } = Astro.props;
 const path = Astro.url.pathname;
+const siteName = settings.site_name || 'Tên Website';
+const phone = settings.phone || '';
 
 const links = [
   { href: '/', label: 'Trang chủ' },
@@ -15,7 +24,9 @@ function isActive(href: string) {
 
 <header class="site-header">
   <div class="container">
-    <a class="brand" href="/">Trợ Lực Điện LKEbike</a>
+    <a class="brand" href="/">
+      {settings.logo ? <img src={settings.logo} alt={siteName} height="40" /> : siteName}
+    </a>
     <nav aria-label="Menu chính">
       {links.map((link) => (
         <a href={link.href} aria-current={isActive(link.href) ? 'page' : undefined}>
@@ -23,6 +34,6 @@ function isActive(href: string) {
         </a>
       ))}
     </nav>
-    <a class="header-phone" href="tel:0768640918">Gọi: 0768 640 918</a>
+    {phone && <a class="header-phone" href={`tel:${phone.replace(/\s/g, '')}`}>Gọi: {phone}</a>}
   </div>
 </header>

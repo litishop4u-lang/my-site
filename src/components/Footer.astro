@@ -1,14 +1,27 @@
 ---
+import type { Settings, Category } from '../lib/db';
+
+interface Props {
+  settings: Settings;
+  categories: Category[];
+}
+
+const { settings, categories } = Astro.props;
 const year = new Date().getFullYear();
+const siteName = settings.site_name || 'Tên Website';
+const phone = settings.phone || '';
+const zalo = settings.zalo || '';
+const email = settings.email || '';
+const address = settings.address || '';
 ---
 
 <footer class="site-footer">
   <div class="container footer-grid">
     <div>
-      <p class="footer-brand">Trợ Lực Điện LKEbike</p>
-      <p>Địa chỉ: 104 Phan Văn Trị, Phường Chợ Quán, TP.HCM</p>
-      <p>Điện thoại: <a href="tel:0768640918">0768 640 918</a></p>
-      <p>Email: <a href="mailto:litishop4u@gmail.com">litishop4u@gmail.com</a></p>
+      <p class="footer-brand">{siteName}</p>
+      {address && <p>Địa chỉ: {address}</p>}
+      {phone && <p>Điện thoại: <a href={`tel:${phone.replace(/\s/g, '')}`}>{phone}</a></p>}
+      {email && <p>Email: <a href={`mailto:${email}`}>{email}</a></p>}
     </div>
     <div>
       <h4>Menu</h4>
@@ -22,21 +35,23 @@ const year = new Date().getFullYear();
     <div>
       <h4>Danh mục</h4>
       <ul>
-        <li><a href="/">Danh mục 1</a></li>
-        <li><a href="/">Danh mục 2</a></li>
-        <li><a href="/">Danh mục 3</a></li>
+        {categories.map((c) => (
+          <li><a href={`/danh-muc/${c.slug}/`}>{c.name}</a></li>
+        ))}
       </ul>
     </div>
     <div>
       <h4>Kết nối</h4>
       <ul>
-        <li><a href="https://www.facebook.com/xedienlinhkhang" rel="noopener" target="_blank">Facebook</a></li>
-        <li><a href="https://zalo.me/0768640918" rel="noopener" target="_blank">Zalo</a></li>
-        <li><a href="https://www.youtube.com/@lkebike" rel="noopener" target="_blank">YouTube</a></li>
+        {zalo && (
+          <li><a href={`https://zalo.me/${zalo.replace(/\s/g, '')}`} rel="noopener" target="_blank">Zalo</a></li>
+        )}
+        <li><a href="https://facebook.com/" rel="noopener" target="_blank">Facebook</a></li>
+        <li><a href="https://youtube.com/" rel="noopener" target="_blank">YouTube</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
-    <p>&copy; {year} Trợ Lực Điện LKEbike. Bảo lưu mọi quyền.</p>
+    <p>&copy; {year} {siteName}. Bảo lưu mọi quyền.</p>
   </div>
 </footer>

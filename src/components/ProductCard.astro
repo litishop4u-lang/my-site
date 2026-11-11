@@ -1,0 +1,27 @@
+---
+import { formatPrice } from '../lib/db';
+import type { Product } from '../lib/db';
+
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+const href = `/san-pham/${product.slug}/`;
+---
+
+<article class="product">
+  <a class="product-img" href={href}>
+    {product.image ? (
+      <img src={product.image} alt={product.name} loading="lazy" />
+    ) : (
+      <span>Chưa có ảnh</span>
+    )}
+  </a>
+  <h3><a href={href}>{product.name}</a></h3>
+  <p class="price">
+    {product.old_price > product.price && <del>{formatPrice(product.old_price)}</del>}
+    {product.price > 0 ? formatPrice(product.price) : 'Liên hệ'}
+  </p>
+  <a class="btn btn-navy" href={href}>Xem chi tiết</a>
+</article>

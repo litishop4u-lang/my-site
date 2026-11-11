@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { getCategoryBySlug, getProducts } from '../../lib/db';
+
+const { slug } = Astro.params;
+const category = slug ? await getCategoryBySlug(slug) : null;
+const products = category ? await getProducts({ categoryId: category.id, limit: 200 }) : [];
+
+if (!category) {
+  Astro.response.status = 404;
+}
+---
+
+<BaseLayout
+  title={category ? category.name : 'Không tìm thấy danh mục'}
+  description={
+    category
+      ? `Danh sách ${category.name} chính hãng, giá tốt, bảo hành rõ ràng. Liên hệ để được tư vấn.`
+      : 'Danh mục không tồn tại.'
+  }
+  noindex={!category}
+  wide={true}
+>
+  <div class="container page-wide">
+    {category ? (
+      <>
+        <nav class="breadcrumb" aria-label="Đường dẫn">
+          <a href="/">Trang chủ</a> / {category.name}
+        </nav>
+        <h1 class="page-title">{category.name}</h1>
+        {products.length > 0 ? (
+          <div class="grid-4">
+            {products.map((p) => <ProductCard product={p} />)}
+          </div>
+        ) : (
+          <p class="empty-note">Danh mục này chưa có sản phẩm.</p>
+        )}
+      </>
+    ) : (
+      <>
+        <h1>Không tìm thấy danh mục</h1>
+        <p><a href="/">Quay về trang chủ</a></p>
+      </>
+    )}
+  </div>
+</BaseLayout>

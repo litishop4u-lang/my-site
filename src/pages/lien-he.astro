@@ -1,5 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getSettings } from '../lib/db';
+
+const settings = await getSettings();
+const phone = settings.phone || '';
+const zalo = settings.zalo || '';
+const email = settings.email || '';
+const address = settings.address || '';
 ---
 
 <BaseLayout
@@ -7,8 +14,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   description="Thông tin liên hệ, địa chỉ và số điện thoại để đặt hàng hoặc được tư vấn nhanh nhất."
 >
   <h1>Liên hệ</h1>
-  <p>Địa chỉ: 104 Phan Văn Trị, Phường Chợ Quán, TP.HCM</p>
-  <p>Điện thoại: <a href="tel:0768640918">0768 640 918</a></p>
-  <p>Zalo: <a href="https://zalo.me/0768640918">0768 640 918</a></p>
-  <p>Email: <a href="mailto:litishop4u@gmail.com">litishop4u@gmail.com</a></p>
+  {address && <p>Địa chỉ: {address}</p>}
+  {phone && <p>Điện thoại: <a href={`tel:${phone.replace(/\s/g, '')}`}>{phone}</a></p>}
+  {zalo && <p>Zalo: <a href={`https://zalo.me/${zalo.replace(/\s/g, '')}`}>{zalo}</a></p>}
+  {email && <p>Email: <a href={`mailto:${email}`}>{email}</a></p>}
 </BaseLayout>

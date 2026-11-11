@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { getSettings, getCategories } from '../lib/db';
 
 interface Props {
   title: string;
@@ -15,7 +16,8 @@ interface Props {
   modifiedTime?: Date;
 }
 
-const SITE_NAME = 'Trợ Lực Điện LKEbike';
+const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
+const SITE_NAME = settings.site_name || 'Tên Website';
 
 const {
   title,
@@ -79,10 +81,10 @@ const websiteSchema = {
     {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
   </head>
   <body>
-    <Header />
+    <Header settings={settings} />
     <main class={wide ? undefined : 'container'}>
       <slot />
     </main>
-    <Footer />
+    <Footer settings={settings} categories={categories} />
   </body>
 </html>
