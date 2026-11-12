@@ -2348,3 +2348,243 @@ a {
     align-items: start;
   }
 }
+
+/* ===== Khung ảnh sản phẩm to hơn ===== */
+.page-wide:has(.product-detail) {
+  max-width: 1360px;
+}
+
+.product-detail {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+  .product-detail {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr) 340px;
+  }
+}
+
+@media (max-width: 720px) {
+  .product-detail {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Nút Hotline nhỏ lại 20% ===== */
+.site-header .header-phone {
+  margin-left: 0;
+  font-size: 0.8rem;
+  padding: 0.48rem 0.96rem;
+  border-radius: 10px;
+  box-shadow:
+    0 3px 0 #9aa0a8,
+    0 6px 11px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 #ffffff;
+}
+
+.site-header .header-phone:hover {
+  box-shadow:
+    0 4px 0 #9aa0a8,
+    0 9px 14px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 #ffffff;
+}
+
+.site-header .header-phone:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #9aa0a8,
+    0 2px 5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 #ffffff;
+}
+
+/* ===== Ô tìm kiếm ở đầu trang ===== */
+.header-search {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 140px;
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.header-search form {
+  position: relative;
+  margin: 0;
+}
+
+.header-search .search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.header-search input[type='search'] {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 40px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.92rem;
+  outline: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.header-search input[type='search']::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.header-search input[type='search']:focus {
+  background: #ffffff;
+  color: #15171a;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(156, 196, 240, 0.45);
+}
+
+.header-search input[type='search']:focus::placeholder {
+  color: #7a808a;
+}
+
+.header-search form:focus-within .search-icon {
+  color: #5d636c;
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  width: min(420px, 92vw);
+  max-height: 70vh;
+  overflow: auto;
+  background: var(--surface-2);
+  border: 1px solid #b3b8bf;
+  border-top: 3px solid var(--accent-btn);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+}
+
+.search-results[hidden] {
+  display: none;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid #dfe2e6;
+}
+
+.search-item:hover,
+.search-item.active {
+  background: var(--bg);
+}
+
+.search-thumb {
+  display: block;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #dfe2e6;
+}
+
+.search-body {
+  min-width: 0;
+}
+
+.search-name {
+  display: block;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.search-price {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--price);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.search-price del {
+  margin-left: 0.4rem;
+  color: #7a808a;
+  font-weight: 400;
+}
+
+.search-all {
+  display: block;
+  padding: 0.7rem 0.8rem;
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.search-empty {
+  margin: 0;
+  padding: 1rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.search-page-form {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 520px;
+  margin: 0 0 1.5rem;
+}
+
+.search-page-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid #aab0b8;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+@media (max-width: 1100px) {
+  .header-search {
+    flex-basis: 160px;
+  }
+
+  .site-header .container {
+    gap: 0 1rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .header-search {
+    order: 4;
+    flex: 1 1 100%;
+    max-width: none;
+    margin: 0 0 0.5rem;
+  }
+
+  .search-results {
+    right: auto;
+    left: 0;
+    width: 100%;
+  }
+
+  .site-header .header-phone {
+    margin-left: auto;
+  }
+}
