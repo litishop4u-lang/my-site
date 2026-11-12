@@ -8,6 +8,8 @@ interface Props {
 
 const { settings, categories = [] } = Astro.props;
 const path = Astro.url.pathname;
+const topCategories = categories.filter((c) => !c.parent_id);
+const childrenOf = (id: number) => categories.filter((c) => c.parent_id === id);
 const siteName = settings.site_name || 'Tên Website';
 const phone = settings.phone || '';
 
@@ -40,9 +42,21 @@ const isShop = path.startsWith('/danh-muc/') || path.startsWith('/san-pham/');
             Sản phẩm <span class="caret" aria-hidden="true">▾</span>
           </button>
           <ul class="dropdown-menu">
-            {categories.map((c) => (
-              <li><a href={`/danh-muc/${c.slug}/`}>{c.name}</a></li>
-            ))}
+            {topCategories.map((c) => {
+              const kids = childrenOf(c.id);
+              return (
+                <li class="dd-group">
+                  <a class="dd-parent" href={`/danh-muc/${c.slug}/`}>{c.name}</a>
+                  {kids.length > 0 && (
+                    <ul class="dd-children">
+                      {kids.map((k) => (
+                        <li><a href={`/danh-muc/${k.slug}/`}>{k.name}</a></li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

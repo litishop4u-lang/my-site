@@ -2,6 +2,7 @@
 import type { Category } from '../lib/db';
 import type { Brand, ProductInput } from '../lib/admin-products';
 import { descriptionForEditor } from '../lib/rich';
+import { orderCategories } from '../lib/catalog';
 
 interface Props {
   product: ProductInput;
@@ -41,8 +42,8 @@ const initialData = JSON.stringify({
       <div class="adm-select-row">
         <select id="category_id" name="category_id">
           <option value="">-- Chọn danh mục --</option>
-          {categories.map((c) => (
-            <option value={c.id} selected={product.category_id === c.id}>{c.name}</option>
+          {orderCategories(categories).map((c) => (
+            <option value={c.id} selected={product.category_id === c.id}>{c.parent_id ? '— ' : ''}{c.name}</option>
           ))}
         </select>
         <button type="button" class="adm-plus" data-add-tax="category" title="Thêm danh mục mới" aria-label="Thêm danh mục mới">+</button>

@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 export type Settings = Record<string, string>;
 
 export type Category = {
+  parent_id?: number | null;
   id: number;
   name: string;
   slug: string;

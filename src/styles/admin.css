@@ -1243,3 +1243,75 @@
     grid-template-columns: 1fr;
   }
 }
+
+.cat-head,
+.cat-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr 1.3fr 70px 110px 70px auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.cat-head {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+  color: #5f6368;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cat-row {
+  margin: 0;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.cat-row.child {
+  padding-left: 1rem;
+  border-left: 3px solid #d8dbe6;
+}
+
+.cat-row input[type='text'],
+.cat-row input[type='number'],
+.cat-row select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  background: #ffffff;
+  font: inherit;
+}
+
+.cat-row select:disabled {
+  background: #f1f2f7;
+  color: #8a8f98;
+}
+
+.cat-row .btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.cat-na {
+  color: #8a8f98;
+  font-size: 0.85rem;
+}
+
+.adm-add select {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+}
+
+@media (max-width: 900px) {
+  .cat-head {
+    display: none;
+  }
+
+  .cat-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}

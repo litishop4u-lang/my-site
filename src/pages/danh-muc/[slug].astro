@@ -1,41 +1,228 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import { getCategoryBySlug, getProducts } from '../../lib/db';
+import { getCategories } from '../../lib/db';
+import { getProductsForCategories } from '../../lib/catalog';
+
+export const prerender = false;
+
+const PAGE_SIZE = 20;
+const BUCKETS = [
+  { key: '0-10', label: 'Dưới 10 triệu', min: 0, max: 9999999 },
+  { key: '10-20', label: 'Từ 10 đến 20 triệu', min: 10000000, max: 19999999 },
+  { key: '20-30', label: 'Từ 20 đến 30 triệu', min: 20000000, max: 29999999 },
+  { key: '30-40', label: 'Từ 30 đến 40 triệu', min: 30000000, max: 39999999 },
+  { key: '40-', label: 'Trên 40 triệu', min: 40000000, max: 0 },
+];
 
 const { slug } = Astro.params;
-const category = slug ? await getCategoryBySlug(slug) : null;
-const products = category ? await getProducts({ categoryId: category.id, limit: 200 }) : [];
+const allCats = await getCategories();
+const category = allCats.find((c) => c.slug === slug) ?? null;
 
 if (!category) {
   Astro.response.status = 404;
 }
+
+const parent = category && category.parent_id ? allCats.find((c) => c.id === category.parent_id) ?? null : null;
+const children = category ? allCats.filter((c) => c.parent_id === category.id) : [];
+const ids = category ? [category.id, ...children.map((c) => c.id)] : [];
+const all = category ? await getProductsForCategories(ids) : [];
+
+const chipSource =
+  children.length > 0 ? children : parent ? allCats.filter((c) => c.parent_id === parent.id) : [];
+
+const sp = Astro.url.searchParams;
+const brandSel = sp.getAll('brand').map((s) => s.trim()).filter(Boolean);
+const sortRaw = sp.get('sort') ?? '';
+const sort = sortRaw === 'price_asc' || sortRaw === 'price_desc' ? sortRaw : 'new';
+const bucketKey = sp.get('price') ?? '';
+
+const toVnd = (v: string | null): number => {
+  const n = parseFloat(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 1000000) : 0;
+};
+
+let minP = toVnd(sp.get('min'));
+let maxP = toVnd(sp.get('max'));
+const customPrice = minP > 0 || maxP > 0;
+let activeBucket = '';
+if (!customPrice) {
+  const b = BUCKETS.find((x) => x.key === bucketKey);
+  if (b) {
+    minP = b.min;
+    maxP = b.max;
+    activeBucket = b.key;
+  }
+}
+const priceActive = minP > 0 || maxP > 0;
+
+const brandMap = new Map<string, { name: string; count: number }>();
+for (const p of all) {
+  if (!p.brand_slug) continue;
+  const entry = brandMap.get(p.brand_slug);
+  if (entry) entry.count++;
+  else brandMap.set(p.brand_slug, { name: p.brand_name ?? p.brand_slug, count: 1 });
+}
+const brands = [...brandMap.entries()]
+  .map(([bslug, v]) => ({ slug: bslug, name: v.name, count: v.count }))
+  .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+let filtered = all.filter((p) => {
+  if (brandSel.length > 0 && !(p.brand_slug && brandSel.includes(p.brand_slug))) return false;
+  if (priceActive) {
+    if (!(p.price > 0)) return false;
+    if (minP > 0 && p.price < minP) return false;
+    if (maxP > 0 && p.price > maxP) return false;
+  }
+  return true;
+});
+
+const priceKey = (n: number) => (n > 0 ? n : Number.MAX_SAFE_INTEGER);
+if (sort === 'price_asc') {
+  filtered = [...filtered].sort((a, b) => priceKey(a.price) - priceKey(b.price));
+} else if (sort === 'price_desc') {
+  filtered = [...filtered].sort((a, b) => b.price - a.price);
+}
+
+const page = Math.max(1, parseInt(sp.get('page') ?? '1', 10) || 1);
+const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+const currentPage = Math.min(page, pages);
+const items = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+const hasFilters = brandSel.length > 0 || priceActive || sort !== 'new';
+const basePath = category ? `/danh-muc/${category.slug}/` : '/';
+
+function pageLink(n: number): string {
+  const params = new URLSearchParams(sp);
+  params.set('page', String(n));
+  if (n === 1) params.delete('page');
+  const qs = params.toString();
+  return qs ? `${basePath}?${qs}` : basePath;
+}
+
+const minMillion = customPrice && minP > 0 ? String(minP / 1000000) : '';
+const maxMillion = customPrice && maxP > 0 ? String(maxP / 1000000) : '';
 ---
 
 <BaseLayout
   title={category ? category.name : 'Không tìm thấy danh mục'}
   description={
     category
-      ? `Danh sách ${category.name} chính hãng, giá tốt, bảo hành rõ ràng. Liên hệ để được tư vấn.`
+      ? `Danh sách ${category.name} chính hãng, giá tốt, bảo hành rõ ràng. Lọc theo thương hiệu và giá, liên hệ để được tư vấn.`
       : 'Danh mục không tồn tại.'
   }
-  noindex={!category}
+  noindex={!category || hasFilters}
   wide={true}
 >
   <div class="container page-wide">
     {category ? (
       <>
         <nav class="breadcrumb" aria-label="Đường dẫn">
-          <a href="/">Trang chủ</a> / {category.name}
+          <a href="/">Trang chủ</a>
+          {parent && (
+            <>
+              {' / '}
+              <a href={`/danh-muc/${parent.slug}/`}>{parent.name}</a>
+            </>
+          )}
+          {' / '}{category.name}
         </nav>
         <h1 class="page-title">{category.name}</h1>
-        {products.length > 0 ? (
-          <div class="grid-4">
-            {products.map((p) => <ProductCard product={p} />)}
-          </div>
-        ) : (
-          <p class="empty-note">Danh mục này chưa có sản phẩm.</p>
+
+        {chipSource.length > 0 && (
+          <nav class="subcat-chips" aria-label="Danh mục con">
+            {parent && <a class="subcat-chip" href={`/danh-muc/${parent.slug}/`}>Tất cả {parent.name}</a>}
+            {chipSource.map((c) => (
+              <a class:list={['subcat-chip', { active: c.id === category.id }]} href={`/danh-muc/${c.slug}/`}>{c.name}</a>
+            ))}
+          </nav>
         )}
+
+        <form class="cat-layout" method="get" action={basePath} data-filter-form>
+          <aside class="filter-panel">
+            {brands.length > 0 && (
+              <details class="filter-group" open data-active={brandSel.length > 0 ? 'true' : undefined}>
+                <summary>Thương hiệu</summary>
+                <div class="filter-list">
+                  {brands.map((b) => (
+                    <label class="filter-check">
+                      <input type="checkbox" name="brand" value={b.slug} checked={brandSel.includes(b.slug)} />
+                      {b.name}
+                      <span>({b.count})</span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+            )}
+
+            <details class="filter-group" open data-active={priceActive ? 'true' : undefined}>
+              <summary>Khoảng giá</summary>
+              <div class="filter-list">
+                <label class="filter-check">
+                  <input type="radio" name="price" value="" checked={!activeBucket} />
+                  Tất cả mức giá
+                </label>
+                {BUCKETS.map((b) => (
+                  <label class="filter-check">
+                    <input type="radio" name="price" value={b.key} checked={activeBucket === b.key} />
+                    {b.label}
+                  </label>
+                ))}
+              </div>
+              <div class="price-custom">
+                <input type="number" name="min" min="0" step="any" placeholder="Từ" value={minMillion} />
+                <span>-</span>
+                <input type="number" name="max" min="0" step="any" placeholder="Đến" value={maxMillion} />
+              </div>
+              <p class="filter-note">Nhập khoảng giá theo đơn vị triệu đồng.</p>
+            </details>
+
+            <div class="filter-actions">
+              <button class="btn btn-navy" type="submit">Áp dụng</button>
+              {hasFilters && <a class="filter-clear" href={basePath}>Xoá bộ lọc</a>}
+            </div>
+          </aside>
+
+          <div class="cat-main">
+            <div class="cat-toolbar">
+              <span class="cat-count">{filtered.length} sản phẩm</span>
+              <label class="cat-sort">
+                Sắp xếp
+                <select name="sort">
+                  <option value="new" selected={sort === 'new'}>Mới nhất</option>
+                  <option value="price_asc" selected={sort === 'price_asc'}>Giá thấp đến cao</option>
+                  <option value="price_desc" selected={sort === 'price_desc'}>Giá cao đến thấp</option>
+                </select>
+              </label>
+            </div>
+
+            {items.length > 0 ? (
+              <div class="grid-4">
+                {items.map((p) => <ProductCard product={p} />)}
+              </div>
+            ) : (
+              <p class="empty-note">
+                {all.length === 0
+                  ? 'Danh mục này chưa có sản phẩm.'
+                  : 'Không có sản phẩm nào phù hợp với bộ lọc. Hãy thử bỏ bớt điều kiện lọc.'}
+              </p>
+            )}
+
+            {pages > 1 && (
+              <nav class="pager" aria-label="Phân trang">
+                {currentPage > 1 && <a href={pageLink(currentPage - 1)}>‹ Trước</a>}
+                {Array.from({ length: pages }, (_, i) => i + 1).map((n) =>
+                  n === currentPage ? (
+                    <span class="current">{n}</span>
+                  ) : (
+                    <a href={pageLink(n)}>{n}</a>
+                  ),
+                )}
+                {currentPage < pages && <a href={pageLink(currentPage + 1)}>Sau ›</a>}
+              </nav>
+            )}
+          </div>
+        </form>
       </>
     ) : (
       <>
@@ -44,4 +231,6 @@ if (!category) {
       </>
     )}
   </div>
+
+  <script is:inline defer src="/filters.js?v=1"></script>
 </BaseLayout>

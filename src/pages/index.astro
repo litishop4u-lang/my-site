@@ -13,11 +13,16 @@ const [settings, categories, products, dbBanners, posts] = await Promise.all([
 ]);
 
 const sections = categories
-  .filter((c) => c.show_on_home === 1)
-  .map((c) => ({
-    category: c,
-    products: products.filter((p) => p.category_id === c.id).slice(0, 10),
-  }))
+  .filter((c) => c.show_on_home === 1 && !c.parent_id)
+  .map((c) => {
+    const ids = new Set<number>([c.id, ...categories.filter((x) => x.parent_id === c.id).map((x) => x.id)]);
+    return {
+      category: c,
+      products: products
+        .filter((p) => p.category_id !== null && ids.has(p.category_id))
+        .slice(0, 10),
+    };
+  })
   .filter((s) => s.products.length > 0);
 
 const siteName = settings.site_name || 'Tên Website';
