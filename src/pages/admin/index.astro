@@ -13,10 +13,12 @@ async function count(sql: string): Promise<number> {
   }
 }
 
-const [products, categories, brands] = await Promise.all([
+const [products, categories, brands, stores, unread] = await Promise.all([
   count('SELECT COUNT(*) AS n FROM products'),
   count('SELECT COUNT(*) AS n FROM categories'),
   count('SELECT COUNT(*) AS n FROM brands'),
+  count('SELECT COUNT(*) AS n FROM stores'),
+  count('SELECT COUNT(*) AS n FROM contact_messages WHERE is_read = 0'),
 ]);
 ---
 
@@ -26,6 +28,11 @@ const [products, categories, brands] = await Promise.all([
     <div class="adm-card"><div class="num">{products}</div><div class="label">Sản phẩm</div></div>
     <div class="adm-card"><div class="num">{categories}</div><div class="label">Danh mục</div></div>
     <div class="adm-card"><div class="num">{brands}</div><div class="label">Thương hiệu</div></div>
+    <div class="adm-card"><div class="num">{stores}</div><div class="label">Cửa hàng</div></div>
+    <a class:list={['adm-card', 'adm-card-link', { 'adm-card-alert': unread > 0 }]} href="/admin/lien-he/">
+      <div class="num">{unread}</div>
+      <div class="label">Tin nhắn chưa đọc</div>
+    </a>
   </div>
-  <p class="adm-note">Các mục quản lý sản phẩm, danh mục, thương hiệu và cài đặt sẽ được thêm ở các bước tiếp theo.</p>
+  <p class="adm-note">Chọn các mục ở thanh menu phía trên để quản lý sản phẩm, danh mục, banner, cửa hàng, tin nhắn và cài đặt.</p>
 </AdminLayout>

@@ -1,21 +1,311 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { env } from 'cloudflare:workers';
 import { getSettings } from '../lib/db';
+import {
+  messengerLink,
+  safeUrl,
+  mapEmbedSrc,
+  directionsUrl,
+  splitList,
+  parseLines,
+} from '../lib/contact';
+
+export const prerender = false;
+
+type Store = {
+  id: number;
+  name: string;
+  address: string;
+  hours: string | null;
+  phones: string | null;
+  image: string | null;
+  map_embed: string | null;
+};
+
+async function sha256(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
+}
 
 const settings = await getSettings();
-const phone = settings.phone || '';
-const zalo = settings.zalo || '';
-const email = settings.email || '';
-const address = settings.address || '';
+const siteName = settings.site_name || 'Chúng tôi';
+
+let stores: Store[] = [];
+try {
+  const result = await env.DB.prepare(
+    'SELECT id, name, address, hours, phones, image, map_embed FROM stores WHERE is_active = 1 ORDER BY sort_order, id',
+  ).all<Store>();
+  stores = result.results;
+} catch {
+  stores = [];
+}
+
+const sent = Astro.url.searchParams.get('sent') === '1';
+let formError = '';
+let values = { name: '', phone: '', email: '', message: '' };
+const openedAt = Date.now();
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  values = {
+    name: String(form.get('name') ?? '').trim().slice(0, 100),
+    phone: String(form.get('phone') ?? '').trim().slice(0, 30),
+    email: String(form.get('email') ?? '').trim().slice(0, 120),
+    message: String(form.get('message') ?? '').trim().slice(0, 3000),
+  };
+  const honeypot = String(form.get('website') ?? '');
+  const shownAt = Number(form.get('t') ?? 0);
+  const phoneDigits = values.phone.replace(/\D/g, '');
+
+  if (honeypot) {
+    return Astro.redirect('/lien-he/?sent=1#gui-yeu-cau');
+  }
+
+  if (!values.name || !phoneDigits || !values.message) {
+    formError = 'Vui lòng điền đầy đủ họ tên, số điện thoại và nội dung.';
+  } else if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+    formError = 'Số điện thoại chưa đúng, vui lòng kiểm tra lại.';
+  } else if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    formError = 'Email chưa đúng định dạng.';
+  } else if (shownAt && Date.now() - shownAt < 3000) {
+    formError = 'Bạn gửi quá nhanh, vui lòng thử lại sau vài giây.';
+  } else {
+    const secret = String((env as unknown as { SESSION_SECRET?: string }).SESSION_SECRET ?? '');
+    const ip = Astro.request.headers.get('cf-connecting-ip') ?? '';
+    const ipHash = ip ? await sha256(`${ip}:${secret}`) : '';
+
+    let tooMany = false;
+    if (ipHash) {
+      const recent = await env.DB.prepare(
+        "SELECT COUNT(*) AS n FROM contact_messages WHERE ip_hash = ? AND created_at > datetime('now', '-1 hour')",
+      )
+        .bind(ipHash)
+        .first<{ n: number }>();
+      tooMany = (recent?.n ?? 0) >= 5;
+    }
+
+    if (tooMany) {
+      formError = 'Bạn đã gửi nhiều yêu cầu liên tiếp, vui lòng thử lại sau hoặc gọi hotline.';
+    } else {
+      await env.DB.prepare(
+        'INSERT INTO contact_messages (name, phone, email, message, ip_hash) VALUES (?, ?, ?, ?, ?)',
+      )
+        .bind(values.name, values.phone, values.email || null, values.message, ipHash || null)
+        .run();
+      return Astro.redirect('/lien-he/?sent=1#gui-yeu-cau');
+    }
+  }
+}
+
+const phone = (settings.phone || '').trim();
+const zalo = (settings.zalo || '').trim();
+const email = (settings.email || '').trim();
+const messenger = messengerLink(settings.messenger || '');
+
+const intro =
+  (settings.contact_intro || '').trim() ||
+  `${siteName} luôn sẵn sàng tư vấn, báo giá và hỗ trợ bảo hành. Gọi hotline hoặc nhắn Zalo để được trả lời nhanh nhất, hoặc ghé cửa hàng để xem xe trực tiếp.`;
+
+const cards: { key: string; label: string; value: string; href: string; icon: string; external: boolean }[] = [];
+if (phone) {
+  cards.push({ key: 'phone', label: 'Hotline tư vấn', value: phone, href: `tel:${phone.replace(/\s/g, '')}`, icon: '/icons/phone.svg', external: false });
+}
+if (zalo) {
+  cards.push({ key: 'zalo', label: 'Chat Zalo', value: zalo, href: `https://zalo.me/${zalo.replace(/\D/g, '')}`, icon: '/icons/zalo.svg', external: true });
+}
+if (messenger) {
+  cards.push({ key: 'messenger', label: 'Messenger', value: 'Nhắn tin Facebook', href: messenger, icon: '/icons/messenger.svg', external: true });
+}
+if (email) {
+  cards.push({ key: 'email', label: 'Email', value: email, href: `mailto:${email}`, icon: '', external: false });
+}
+
+const storeCards = stores.map((s) => ({
+  ...s,
+  mapSrc: mapEmbedSrc(s.map_embed, s.address),
+  dir: directionsUrl(s.address),
+  phoneList: splitList(s.phones, 4),
+  photo:
+    s.image && /^\/media\/\?k=[a-z0-9\-/]+\.(jpg|png|webp|gif)$/.test(s.image) ? s.image : '',
+}));
+
+const lines = parseLines(settings.contact_lines);
+const socials = [
+  { label: 'Facebook', url: safeUrl(settings.facebook_url || '') },
+  { label: 'TikTok', url: safeUrl(settings.tiktok_url || '') },
+  { label: 'Instagram', url: safeUrl(settings.instagram_url || '') },
+  { label: 'YouTube', url: safeUrl(settings.youtube_url || '') },
+].filter((s) => s.url);
+
+const hasAside = lines.length > 0 || socials.length > 0;
+
+const schema =
+  storeCards.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@graph': storeCards.map((s) => ({
+          '@type': 'LocalBusiness',
+          name: s.name ? `${siteName} - ${s.name}` : siteName,
+          address: { '@type': 'PostalAddress', streetAddress: s.address, addressCountry: 'VN' },
+          telephone: s.phoneList[0] || phone || undefined,
+          url: new URL('/lien-he/', Astro.site).toString(),
+        })),
+      }
+    : undefined;
 ---
 
 <BaseLayout
   title="Liên hệ"
-  description="Thông tin liên hệ, địa chỉ và số điện thoại để đặt hàng hoặc được tư vấn nhanh nhất."
+  description={`Thông tin liên hệ, hệ thống cửa hàng và form gửi yêu cầu tư vấn của ${siteName}.`}
+  wide={true}
+  schema={schema}
 >
-  <h1>Liên hệ</h1>
-  {address && <p>Địa chỉ: {address}</p>}
-  {phone && <p>Điện thoại: <a href={`tel:${phone.replace(/\s/g, '')}`}>{phone}</a></p>}
-  {zalo && <p>Zalo: <a href={`https://zalo.me/${zalo.replace(/\s/g, '')}`}>{zalo}</a></p>}
-  {email && <p>Email: <a href={`mailto:${email}`}>{email}</a></p>}
+  <div class="container page-wide contact-page">
+    <header class="contact-head">
+      <h1>Liên hệ</h1>
+      <p class="contact-intro">{intro}</p>
+    </header>
+
+    {cards.length > 0 && (
+      <div class="cc-grid">
+        {cards.map((c) => (
+          <a
+            class="cc-card"
+            href={c.href}
+            target={c.external ? '_blank' : undefined}
+            rel={c.external ? 'noopener' : undefined}
+          >
+            <span class="cc-icon">
+              {c.icon ? (
+                <img src={c.icon} alt="" width="30" height="30" />
+              ) : (
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3.5 6.5 8.5 6.5 8.5-6.5" />
+                </svg>
+              )}
+            </span>
+            <span class="cc-text">
+              <small>{c.label}</small>
+              <strong>{c.value}</strong>
+            </span>
+          </a>
+        ))}
+      </div>
+    )}
+
+    {storeCards.length > 0 && (
+      <section class="contact-block">
+        <h2 class="contact-title">Hệ thống showroom</h2>
+        <div class="sr-wrap">
+          <div class="sr-list">
+            {storeCards.map((s, i) => (
+              <article class:list={['sr-card', { active: i === 0 }]} data-store data-map={s.mapSrc}>
+                <div class="sr-photo">
+                  {s.photo ? <img src={s.photo} alt={s.name} loading="lazy" /> : <span>Chưa có ảnh</span>}
+                </div>
+                <div class="sr-info">
+                  <h3><button type="button" class="sr-title" data-select>{s.name}</button></h3>
+                  <p class="sr-addr">{s.address}</p>
+                  {s.hours && <p class="sr-hours">{s.hours}</p>}
+                  {s.phoneList.length > 0 && (
+                    <p class="sr-phones">
+                      {s.phoneList.map((p) => (
+                        <a href={`tel:${p.replace(/\s/g, '')}`}>{p}</a>
+                      ))}
+                    </p>
+                  )}
+                  <div class="sr-actions">
+                    {s.dir && <a class="sr-btn" href={s.dir} target="_blank" rel="noopener">Chỉ đường</a>}
+                    {s.photo && <button type="button" class="sr-btn" data-photo={s.photo}>Ảnh cửa hàng</button>}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div class="sr-map">
+            {storeCards[0].mapSrc && (
+              <iframe
+                data-sr-map
+                src={storeCards[0].mapSrc}
+                title="Bản đồ showroom"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen
+              ></iframe>
+            )}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <section class:list={['contact-main', { 'no-aside': !hasAside }]} id="gui-yeu-cau">
+      <div class="cf-card">
+        <h2>Gửi yêu cầu cho chúng tôi</h2>
+        <p class="cf-sub">Để lại thông tin, nhân viên {siteName} sẽ gọi lại cho bạn trong giờ làm việc.</p>
+
+        {sent && <div class="cf-ok">Cảm ơn bạn! Chúng tôi đã nhận được yêu cầu và sẽ liên hệ lại sớm nhất.</div>}
+        {formError && <div class="cf-err">{formError}</div>}
+
+        <form class="cf-form" method="post" action="/lien-he/#gui-yeu-cau">
+          <div class="cf-row">
+            <label class="cf-field">
+              <span>Họ và tên *</span>
+              <input name="name" type="text" required maxlength="100" placeholder="Nguyễn Văn A" value={values.name} />
+            </label>
+            <label class="cf-field">
+              <span>Số điện thoại *</span>
+              <input name="phone" type="tel" required maxlength="30" placeholder="09xx xxx xxx" value={values.phone} />
+            </label>
+          </div>
+          <label class="cf-field">
+            <span>Email (không bắt buộc)</span>
+            <input name="email" type="email" maxlength="120" placeholder="email@example.com" value={values.email} />
+          </label>
+          <label class="cf-field">
+            <span>Nội dung *</span>
+            <textarea name="message" rows="6" required maxlength="3000" placeholder="Bạn cần tư vấn sản phẩm nào, ngân sách dự kiến...">{values.message}</textarea>
+          </label>
+          <input class="cf-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <input type="hidden" name="t" value={openedAt} />
+          <button class="btn cf-submit" type="submit">Gửi yêu cầu</button>
+        </form>
+      </div>
+
+      {hasAside && (
+        <aside class="contact-aside">
+          {lines.length > 0 && (
+            <section class="cf-card">
+              <h2>Tổng đài hỗ trợ</h2>
+              <ul class="hl-list">
+                {lines.map((l) => (
+                  <li>
+                    <span>{l.label}</span>
+                    <a href={`tel:${l.number.replace(/\s/g, '')}`}>{l.number}</a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {socials.length > 0 && (
+            <section class="cf-card">
+              <h2>Theo dõi {siteName}</h2>
+              <div class="social-row">
+                {socials.map((s) => (
+                  <a class="social-pill" href={s.url} target="_blank" rel="noopener">{s.label}</a>
+                ))}
+              </div>
+            </section>
+          )}
+        </aside>
+      )}
+    </section>
+  </div>
+
+  <script is:inline defer src="/showrooms.js?v=1"></script>
 </BaseLayout>

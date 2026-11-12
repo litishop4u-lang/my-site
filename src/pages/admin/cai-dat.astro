@@ -15,6 +15,12 @@ const TEXT_FIELDS = [
   'hero_title',
   'hero_subtitle',
   'hero_text',
+  'contact_intro',
+  'contact_lines',
+  'facebook_url',
+  'tiktok_url',
+  'instagram_url',
+  'youtube_url',
   'store_name',
   'map_embed',
   'policies',
@@ -90,7 +96,37 @@ const saved = Astro.url.searchParams.get('saved');
         <input id="address" name="address" type="text" value={s.address ?? ''} />
       </div>
 
-            <div class="adm-field">
+            <div class="adm-field adm-span2">
+        <label for="contact_intro">Lời giới thiệu ở trang Liên hệ</label>
+        <textarea id="contact_intro" name="contact_intro" rows="3" placeholder="Để trống thì dùng câu mặc định.">{s.contact_intro ?? ''}</textarea>
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="contact_lines">Tổng đài hỗ trợ ở trang Liên hệ (mỗi dòng viết: Tên | Số điện thoại)</label>
+        <textarea id="contact_lines" name="contact_lines" rows="4" placeholder="Gọi mua hàng | 0909 397 737&#10;Khiếu nại | 0903 688 779&#10;Bảo hành | 0787 683 688">{s.contact_lines ?? ''}</textarea>
+      </div>
+
+      <div class="adm-field">
+        <label for="facebook_url">Facebook (đường dẫn đầy đủ, bắt đầu bằng https://)</label>
+        <input id="facebook_url" name="facebook_url" type="text" placeholder="https://facebook.com/..." value={s.facebook_url ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="tiktok_url">TikTok (đường dẫn đầy đủ)</label>
+        <input id="tiktok_url" name="tiktok_url" type="text" placeholder="https://tiktok.com/@..." value={s.tiktok_url ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="instagram_url">Instagram (đường dẫn đầy đủ)</label>
+        <input id="instagram_url" name="instagram_url" type="text" placeholder="https://instagram.com/..." value={s.instagram_url ?? ''} />
+      </div>
+
+      <div class="adm-field">
+        <label for="youtube_url">YouTube (đường dẫn đầy đủ)</label>
+        <input id="youtube_url" name="youtube_url" type="text" placeholder="https://youtube.com/@..." value={s.youtube_url ?? ''} />
+      </div>
+
+      <div class="adm-field">
         <label for="store_name">Tên cửa hàng / chi nhánh (hiện ở mục Địa chỉ cửa hàng)</label>
         <input id="store_name" name="store_name" type="text" placeholder="vd: Quận 5" value={s.store_name ?? ''} />
       </div>

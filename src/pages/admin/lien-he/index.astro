@@ -1,0 +1,99 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+type Msg = {
+  id: number;
+  name: string;
+  phone: string;
+  email: string | null;
+  message: string;
+  is_read: number;
+  created_at: string;
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  const id = Number(form.get('id'));
+
+  if (action === 'readall') {
+    await env.DB.prepare('UPDATE contact_messages SET is_read = 1 WHERE is_read = 0').run();
+  } else if (Number.isInteger(id) && id > 0) {
+    if (action === 'read') {
+      await env.DB.prepare('UPDATE contact_messages SET is_read = 1 WHERE id = ?').bind(id).run();
+    } else if (action === 'unread') {
+      await env.DB.prepare('UPDATE contact_messages SET is_read = 0 WHERE id = ?').bind(id).run();
+    } else if (action === 'delete') {
+      await env.DB.prepare('DELETE FROM contact_messages WHERE id = ?').bind(id).run();
+    }
+  }
+  return Astro.redirect('/admin/lien-he/');
+}
+
+let rows: Msg[] = [];
+try {
+  const result = await env.DB.prepare(
+    'SELECT id, name, phone, email, message, is_read, created_at FROM contact_messages ORDER BY id DESC LIMIT 200',
+  ).all<Msg>();
+  rows = result.results;
+} catch {
+  rows = [];
+}
+const unread = rows.filter((r) => r.is_read === 0).length;
+
+function fmt(value: string): string {
+  const d = new Date(value.replace(' ', 'T') + 'Z');
+  return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+---
+
+<AdminLayout title="Tin nhắn liên hệ">
+  <h1>Tin nhắn liên hệ</h1>
+
+  <div class="adm-toolbar">
+    <span>{rows.length} tin nhắn, <strong>{unread}</strong> chưa đọc</span>
+    {unread > 0 && (
+      <form method="post">
+        <input type="hidden" name="action" value="readall" />
+        <button class="adm-icon-btn" type="submit">Đánh dấu tất cả đã đọc</button>
+      </form>
+    )}
+  </div>
+
+  {rows.length === 0 && <p class="adm-empty">Chưa có tin nhắn nào.</p>}
+
+  {rows.map((m) => (
+    <article class:list={['msg-card', { unread: m.is_read === 0 }]}>
+      <header class="msg-head">
+        <div>
+          <strong>{m.name}</strong>
+          {m.is_read === 0 && <span class="adm-badge">Mới</span>}
+          <div class="msg-meta">{fmt(m.created_at)}</div>
+        </div>
+        <div class="msg-contact">
+          <a href={`tel:${m.phone.replace(/\s/g, '')}`}>{m.phone}</a>
+          {m.email && <a href={`mailto:${m.email}`}>{m.email}</a>}
+        </div>
+      </header>
+      <p class="msg-body">{m.message}</p>
+      <form method="post" class="msg-actions">
+        <input type="hidden" name="id" value={m.id} />
+        {m.is_read === 0 ? (
+          <button class="adm-icon-btn" type="submit" name="action" value="read">Đánh dấu đã đọc</button>
+        ) : (
+          <button class="adm-icon-btn" type="submit" name="action" value="unread">Đánh dấu chưa đọc</button>
+        )}
+        <button
+          class="adm-icon-btn danger"
+          type="submit"
+          name="action"
+          value="delete"
+          onclick="return confirm('Xoá tin nhắn này?')"
+        >Xoá</button>
+      </form>
+    </article>
+  ))}
+</AdminLayout>

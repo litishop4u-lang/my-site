@@ -1,0 +1,186 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ImageField from '../../../components/ImageField.astro';
+import { env } from 'cloudflare:workers';
+import { IMAGE_RE } from '../../../lib/content';
+
+export const prerender = false;
+
+type Row = {
+  id: number;
+  name: string;
+  address: string;
+  hours: string | null;
+  phones: string | null;
+  image: string | null;
+  map_embed: string | null;
+  sort_order: number;
+  is_active: number;
+};
+
+function clean(form: FormData) {
+  const image = String(form.get('image') ?? '').trim();
+  return {
+    name: String(form.get('name') ?? '').trim().slice(0, 150),
+    address: String(form.get('address') ?? '').trim().slice(0, 300),
+    hours: String(form.get('hours') ?? '').trim().slice(0, 150),
+    phones: String(form.get('phones') ?? '').trim().slice(0, 200),
+    image: IMAGE_RE.test(image) ? image : '',
+    map_embed: String(form.get('map_embed') ?? '').trim().slice(0, 2000),
+    sort_order: parseInt(String(form.get('sort_order') ?? '0'), 10) || 0,
+    is_active: form.get('is_active') ? 1 : 0,
+  };
+}
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+
+  if (action === 'add') {
+    const d = clean(form);
+    if (!d.name || !d.address) return Astro.redirect('/admin/cua-hang/?msg=missing');
+    await env.DB.prepare(
+      'INSERT INTO stores (name, address, hours, phones, image, map_embed, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    )
+      .bind(d.name, d.address, d.hours || null, d.phones || null, d.image || null, d.map_embed || null, d.sort_order, d.is_active)
+      .run();
+    return Astro.redirect('/admin/cua-hang/?msg=saved');
+  }
+
+  const id = Number(form.get('id'));
+  if (Number.isInteger(id) && id > 0) {
+    if (action === 'update') {
+      const d = clean(form);
+      if (!d.name || !d.address) return Astro.redirect('/admin/cua-hang/?msg=missing');
+      await env.DB.prepare(
+        'UPDATE stores SET name = ?, address = ?, hours = ?, phones = ?, image = ?, map_embed = ?, sort_order = ?, is_active = ? WHERE id = ?',
+      )
+        .bind(d.name, d.address, d.hours || null, d.phones || null, d.image || null, d.map_embed || null, d.sort_order, d.is_active, id)
+        .run();
+    } else if (action === 'delete') {
+      await env.DB.prepare('DELETE FROM stores WHERE id = ?').bind(id).run();
+    }
+  }
+  return Astro.redirect('/admin/cua-hang/?msg=saved');
+}
+
+const msg = Astro.url.searchParams.get('msg');
+
+let rows: Row[] = [];
+try {
+  const result = await env.DB.prepare('SELECT * FROM stores ORDER BY sort_order, id').all<Row>();
+  rows = result.results;
+} catch {
+  rows = [];
+}
+const nextOrder = rows.reduce((max, r) => Math.max(max, r.sort_order), 0) + 1;
+---
+
+<AdminLayout title="Cửa hàng">
+  <h1>Cửa hàng / Showroom</h1>
+
+  {msg === 'saved' && <div class="adm-flash">Đã lưu.</div>}
+  {msg === 'missing' && <div class="adm-error">Vui lòng nhập tên và địa chỉ cửa hàng.</div>}
+
+  <p class="adm-hint">Các cửa hàng ở đây hiện trong mục <strong>Hệ thống showroom</strong> của trang Liên hệ. Số nhỏ hiện trước.</p>
+
+  <form method="post" class="adm-form">
+    <input type="hidden" name="action" value="add" />
+    <h2 class="st-title">Thêm cửa hàng mới</h2>
+    <div class="adm-form-grid">
+      <div class="adm-field adm-span2">
+        <label for="n-name">Tên cửa hàng *</label>
+        <input id="n-name" name="name" type="text" required placeholder="vd: 779 Trần Hưng Đạo - Chợ Quán - TP.HCM" />
+      </div>
+      <div class="adm-field adm-span2">
+        <label for="n-address">Địa chỉ đầy đủ * (dùng để chỉ đường và tìm bản đồ)</label>
+        <input id="n-address" name="address" type="text" required placeholder="779 Trần Hưng Đạo, Phường Chợ Quán, TP.HCM" />
+      </div>
+      <div class="adm-field">
+        <label for="n-hours">Giờ mở cửa</label>
+        <input id="n-hours" name="hours" type="text" placeholder="Mở cửa từ 8:30 - 20:00 hằng ngày" />
+      </div>
+      <div class="adm-field">
+        <label for="n-phones">Số điện thoại (cách nhau bằng dấu phẩy)</label>
+        <input id="n-phones" name="phones" type="text" placeholder="0787 683 688, 0909 397 737" />
+      </div>
+      <ImageField
+        name="image"
+        label="Ảnh cửa hàng"
+        maxSize={1600}
+        hint="1200 × 800 px (tỉ lệ 3:2), JPG hoặc WebP. Nên dùng ảnh mặt tiền hoặc bên trong cửa hàng."
+      />
+      <div class="adm-field adm-span2">
+        <label for="n-map">Mã nhúng Google Maps (không bắt buộc, để trống thì bản đồ tìm theo địa chỉ)</label>
+        <textarea id="n-map" name="map_embed" rows="2" placeholder="Dán mã nhúng: Google Maps > Chia sẻ > Nhúng bản đồ > Sao chép HTML"></textarea>
+      </div>
+      <div class="adm-field">
+        <label for="n-order">Thứ tự</label>
+        <input id="n-order" name="sort_order" type="number" value={nextOrder} />
+      </div>
+      <div class="adm-field">
+        <label class="adm-check"><input type="checkbox" name="is_active" checked /> Hiển thị trên website</label>
+      </div>
+    </div>
+    <div class="adm-actions">
+      <button id="submit-btn" class="adm-btn" type="submit">+ Thêm cửa hàng</button>
+    </div>
+  </form>
+
+  <h2 class="st-title st-title-list">Danh sách cửa hàng ({rows.length})</h2>
+  {rows.length === 0 && <p class="adm-empty">Chưa có cửa hàng nào.</p>}
+
+  {rows.map((r) => (
+    <form method="post" class="adm-form st-card">
+      <input type="hidden" name="id" value={r.id} />
+      <div class="adm-form-grid">
+        <div class="adm-field adm-span2">
+          <label>Tên cửa hàng *</label>
+          <input name="name" type="text" required value={r.name} />
+        </div>
+        <div class="adm-field adm-span2">
+          <label>Địa chỉ đầy đủ *</label>
+          <input name="address" type="text" required value={r.address} />
+        </div>
+        <div class="adm-field">
+          <label>Giờ mở cửa</label>
+          <input name="hours" type="text" value={r.hours ?? ''} />
+        </div>
+        <div class="adm-field">
+          <label>Số điện thoại (cách nhau bằng dấu phẩy)</label>
+          <input name="phones" type="text" value={r.phones ?? ''} />
+        </div>
+        <ImageField
+          name="image"
+          label="Ảnh cửa hàng"
+          value={r.image ?? ''}
+          maxSize={1600}
+          hint="1200 × 800 px (tỉ lệ 3:2), JPG hoặc WebP."
+        />
+        <div class="adm-field adm-span2">
+          <label>Mã nhúng Google Maps (không bắt buộc)</label>
+          <textarea name="map_embed" rows="2">{r.map_embed ?? ''}</textarea>
+        </div>
+        <div class="adm-field">
+          <label>Thứ tự</label>
+          <input name="sort_order" type="number" value={r.sort_order} />
+        </div>
+        <div class="adm-field">
+          <label class="adm-check"><input type="checkbox" name="is_active" checked={r.is_active === 1} /> Hiển thị trên website</label>
+        </div>
+      </div>
+      <div class="adm-actions">
+        <button class="adm-btn" type="submit" name="action" value="update">Lưu thay đổi</button>
+        <button
+          class="adm-icon-btn danger"
+          type="submit"
+          name="action"
+          value="delete"
+          onclick="return confirm('Xoá cửa hàng này?')"
+        >Xoá cửa hàng</button>
+      </div>
+    </form>
+  ))}
+
+  <script is:inline defer src="/admin-image-field.js?v=1"></script>
+</AdminLayout>
