@@ -3127,3 +3127,87 @@ a.ribbon:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Trang Liên hệ: bản đồ cao bằng danh sách showroom ===== */
+.sr-wrap {
+  align-items: stretch;
+}
+
+.sr-list {
+  padding: 3px;
+}
+
+.sr-map {
+  position: relative;
+  top: auto;
+  height: auto;
+  min-height: 0;
+  margin: 3px 0;
+}
+
+.sr-map iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 1100px) {
+  .sr-map {
+    height: 320px;
+    margin: 0;
+  }
+}
+
+/* ===== Trang Liên hệ: thu gọn form và khung hỗ trợ (khoảng 20%) ===== */
+.contact-main {
+  gap: 1rem;
+}
+
+.contact-aside {
+  gap: 1rem;
+}
+
+.cf-card {
+  padding: 1.1rem 1.25rem;
+}
+
+.cf-card h2 {
+  margin-bottom: 0.35rem;
+  font-size: 1.1rem;
+}
+
+.cf-sub {
+  margin-bottom: 0.9rem;
+  font-size: 0.95rem;
+}
+
+.cf-form {
+  gap: 0.75rem;
+}
+
+.cf-row {
+  gap: 0.75rem;
+}
+
+.cf-field span {
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.cf-field input,
+.cf-field textarea {
+  padding: 0.55rem 0.8rem;
+}
+
+.cf-field textarea {
+  height: 7.2rem;
+}
+
+.cf-submit {
+  padding: 0.65rem 1rem;
+}
+
+.hl-list li {
+  padding: 0.6rem 0;
+}
