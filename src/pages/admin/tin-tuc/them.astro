@@ -1,0 +1,28 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import PostForm from '../../../components/PostForm.astro';
+import { emptyPost, parsePostForm, insertPost, uniquePostSlug } from '../../../lib/admin-posts';
+
+export const prerender = false;
+
+let post = emptyPost();
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  post = parsePostForm(form);
+
+  if (!post.title) {
+    error = 'Vui lòng nhập tiêu đề bài viết.';
+  } else {
+    post.slug = await uniquePostSlug(post.slug);
+    await insertPost(post);
+    return Astro.redirect('/admin/tin-tuc/?saved=1');
+  }
+}
+---
+
+<AdminLayout title="Thêm bài viết">
+  <h1>Thêm bài viết</h1>
+  <PostForm post={post} error={error} submitLabel="Lưu bài viết" />
+</AdminLayout>

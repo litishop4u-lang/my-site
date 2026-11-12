@@ -1,0 +1,66 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import RichEditor from '../../../components/RichEditor.astro';
+import { env } from 'cloudflare:workers';
+import { getSettings } from '../../../lib/db';
+import { cleanDescription, descriptionForEditor } from '../../../lib/rich';
+
+export const prerender = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const title = String(form.get('about_title') ?? '').trim().slice(0, 200);
+  const description = String(form.get('about_description') ?? '').trim().slice(0, 300);
+  const html = await cleanDescription(String(form.get('about_html') ?? '').slice(0, 300000));
+
+  const upsert = (key: string, value: string) =>
+    env.DB.prepare(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    ).bind(key, value);
+
+  await env.DB.batch([
+    upsert('about_title', title),
+    upsert('about_description', description),
+    upsert('about_html', html),
+  ]);
+
+  return Astro.redirect('/admin/gioi-thieu/?saved=1');
+}
+
+const s = await getSettings();
+const saved = Astro.url.searchParams.get('saved');
+const editorHtml = await descriptionForEditor(s.about_html);
+---
+
+<AdminLayout title="Giới thiệu">
+  <h1>Trang Giới thiệu</h1>
+  {saved && <div class="adm-flash">Đã lưu trang Giới thiệu. <a href="/gioi-thieu/" target="_blank" rel="noopener">Xem trang</a></div>}
+
+  <form method="post" class="adm-form">
+    <div class="adm-form-grid">
+      <div class="adm-field adm-span2">
+        <label for="about_title">Tiêu đề trang</label>
+        <input id="about_title" name="about_title" type="text" maxlength="200" placeholder="Giới thiệu" value={s.about_title ?? ''} />
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="about_description">Mô tả ngắn (hiện trên Google, nên từ 120 đến 160 ký tự)</label>
+        <textarea id="about_description" name="about_description" rows="2" maxlength="300">{s.about_description ?? ''}</textarea>
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label>Nội dung trang Giới thiệu</label>
+        <p class="adm-hint">
+          Đặt con trỏ vào chỗ muốn chèn rồi bấm + Ảnh (chọn từ thư viện), + YouTube hoặc + Video. Bấm vào ảnh hoặc video để đổi cỡ hoặc xoá.
+        </p>
+        <RichEditor name="about_html" html={editorHtml} />
+      </div>
+    </div>
+
+    <div class="adm-actions">
+      <button class="adm-btn" type="submit">Lưu trang Giới thiệu</button>
+    </div>
+  </form>
+
+  <script is:inline defer src="/admin-rich.js?v=1"></script>
+</AdminLayout>

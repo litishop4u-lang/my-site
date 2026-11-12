@@ -1,0 +1,72 @@
+---
+import ImageField from './ImageField.astro';
+import RichEditor from './RichEditor.astro';
+import { descriptionForEditor } from '../lib/rich';
+import type { PostInput } from '../lib/admin-posts';
+
+interface Props {
+  post: PostInput;
+  error?: string;
+  submitLabel: string;
+}
+
+const { post, error = '', submitLabel } = Astro.props;
+const editorHtml = await descriptionForEditor(post.content);
+---
+
+<form method="post" class="adm-form" id="post-form">
+  {error && <div class="adm-error">{error}</div>}
+
+  <div class="adm-form-grid">
+    <div class="adm-field adm-span2">
+      <label for="title">Tiêu đề bài viết *</label>
+      <input id="title" name="title" type="text" required maxlength="200" value={post.title} />
+    </div>
+
+    <div class="adm-field">
+      <label for="slug">Đường dẫn (để trống sẽ tự tạo từ tiêu đề)</label>
+      <input id="slug" name="slug" type="text" value={post.slug} />
+    </div>
+
+    <div class="adm-field">
+      <label for="pub_date">Ngày đăng</label>
+      <input id="pub_date" name="pub_date" type="date" value={post.pub_date} />
+    </div>
+
+    <div class="adm-field adm-span2">
+      <label for="description">Mô tả ngắn (hiện trên Google và ở danh sách tin, nên từ 120 đến 160 ký tự)</label>
+      <textarea id="description" name="description" rows="2" maxlength="300">{post.description}</textarea>
+    </div>
+
+    <ImageField
+      name="image"
+      label="Ảnh đại diện bài viết"
+      value={post.image}
+      maxSize={1600}
+      hint="1200 × 675 px (tỉ lệ 16:9), JPG hoặc WebP."
+    />
+
+    <div class="adm-field adm-span2">
+      <label>Nội dung bài viết</label>
+      <p class="adm-hint">
+        Đặt con trỏ vào chỗ muốn chèn rồi bấm + Ảnh (chọn từ thư viện), + YouTube hoặc + Video, chúng sẽ nằm đúng vị trí đó. Bấm vào ảnh hoặc video để đổi cỡ hoặc xoá.
+      </p>
+      <RichEditor name="content" html={editorHtml} />
+    </div>
+
+    <div class="adm-field adm-span2">
+      <label class="adm-check">
+        <input name="is_published" type="checkbox" checked={post.is_published === 1} />
+        Đăng công khai (bỏ chọn để lưu nháp, chưa hiện trên website)
+      </label>
+    </div>
+  </div>
+
+  <div class="adm-actions">
+    <button id="submit-btn" class="adm-btn" type="submit">{submitLabel}</button>
+    <a class="adm-link" href="/admin/tin-tuc/">Huỷ</a>
+  </div>
+</form>
+
+<script is:inline defer src="/admin-image-field.js?v=1"></script>
+<script is:inline defer src="/admin-rich.js?v=1"></script>

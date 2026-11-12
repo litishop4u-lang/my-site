@@ -1,0 +1,85 @@
+---
+interface Props {
+  name: string;
+  html?: string;
+}
+
+const { name, html = '' } = Astro.props;
+const initial = JSON.stringify(html).replace(/</g, '\\u003c');
+---
+
+<div class="ed" data-rich>
+  <div class="ed-toolbar" data-rich-toolbar>
+    <select data-rich-block title="Kiểu đoạn">
+      <option value="">Kiểu đoạn</option>
+      <option value="p">Đoạn văn</option>
+      <option value="h2">Tiêu đề lớn</option>
+      <option value="h3">Tiêu đề vừa</option>
+      <option value="h4">Tiêu đề nhỏ</option>
+      <option value="blockquote">Trích dẫn</option>
+    </select>
+    <select data-rich-font title="Phông chữ">
+      <option value="">Phông chữ</option>
+      <option value="Arial, Helvetica, sans-serif">Arial</option>
+      <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+      <option value="Verdana, Geneva, sans-serif">Verdana</option>
+      <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+      <option value="'Segoe UI', sans-serif">Segoe UI</option>
+      <option value="'Times New Roman', Times, serif">Times New Roman</option>
+      <option value="Georgia, serif">Georgia</option>
+      <option value="'Courier New', monospace">Courier New</option>
+    </select>
+    <select data-rich-size title="Cỡ chữ (bôi đen chữ trước)">
+      <option value="">Cỡ chữ</option>
+      <option value="12">12</option>
+      <option value="14">14</option>
+      <option value="16">16</option>
+      <option value="18">18</option>
+      <option value="20">20</option>
+      <option value="24">24</option>
+      <option value="28">28</option>
+      <option value="32">32</option>
+      <option value="36">36</option>
+      <option value="48">48</option>
+    </select>
+    <span class="ed-sep"></span>
+    <button type="button" data-cmd="bold" title="In đậm"><b>B</b></button>
+    <button type="button" data-cmd="italic" title="In nghiêng"><i>I</i></button>
+    <button type="button" data-cmd="underline" title="Gạch chân"><u>U</u></button>
+    <button type="button" data-cmd="strikeThrough" title="Gạch ngang"><s>S</s></button>
+    <input type="color" value="#000000" title="Màu chữ" data-rich-color />
+    <span class="ed-sep"></span>
+    <button type="button" data-cmd="justifyLeft" title="Căn trái">Trái</button>
+    <button type="button" data-cmd="justifyCenter" title="Căn giữa">Giữa</button>
+    <button type="button" data-cmd="justifyRight" title="Căn phải">Phải</button>
+    <button type="button" data-cmd="justifyFull" title="Căn đều hai bên">Đều</button>
+    <span class="ed-sep"></span>
+    <button type="button" data-cmd="insertUnorderedList" title="Danh sách chấm">• Danh sách</button>
+    <button type="button" data-cmd="insertOrderedList" title="Danh sách số">1. Danh sách</button>
+    <button type="button" data-rich-link title="Chèn liên kết">Liên kết</button>
+    <button type="button" data-cmd="unlink" title="Bỏ liên kết">Bỏ liên kết</button>
+    <button type="button" data-cmd="removeFormat" title="Xoá định dạng">Xoá định dạng</button>
+    <span class="ed-sep"></span>
+    <button type="button" data-rich-img title="Chèn ảnh từ thư viện tại vị trí con trỏ">+ Ảnh</button>
+    <button type="button" data-rich-yt title="Chèn video YouTube">+ YouTube</button>
+    <button type="button" data-rich-video title="Chèn video từ máy">+ Video</button>
+    <span class="ed-sep"></span>
+    <button type="button" data-cmd="undo" title="Hoàn tác">↶</button>
+    <button type="button" data-cmd="redo" title="Làm lại">↷</button>
+  </div>
+
+  <div class="ed-media-bar" data-rich-media-bar hidden>
+    <span>Ảnh/video đang chọn:</span>
+    <button type="button" data-size="s">Nhỏ 50%</button>
+    <button type="button" data-size="m">Vừa 75%</button>
+    <button type="button" data-size="l">Rộng 100%</button>
+    <button type="button" class="danger" data-rich-media-del>Xoá</button>
+  </div>
+
+  <div class="ed-area" data-rich-area contenteditable="true"></div>
+
+  <input type="hidden" name={name} data-rich-input />
+  <input type="file" accept="video/mp4,video/webm" hidden data-rich-video-file />
+  <script is:inline type="application/json" data-rich-data set:html={initial}></script>
+  <div class="adm-hint" data-rich-status></div>
+</div>

@@ -1,25 +1,22 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProductCard from '../components/ProductCard.astro';
-import { getCollection } from 'astro:content';
 import { getSettings, getCategories, getProducts, getBanners } from '../lib/db';
+import { getRecentPosts } from '../lib/posts';
 
-const [settings, categories, products, dbBanners] = await Promise.all([
+const [settings, categories, products, dbBanners, posts] = await Promise.all([
   getSettings(),
   getCategories(),
   getProducts({ limit: 200 }),
   getBanners(),
+  getRecentPosts(3),
 ]);
-
-const posts = (await getCollection('blog'))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 3);
 
 const sections = categories
   .filter((c) => c.show_on_home === 1)
   .map((c) => ({
     category: c,
-    products: products.filter((p) => p.category_id === c.id).slice(0, 8),
+    products: products.filter((p) => p.category_id === c.id).slice(0, 10),
   }))
   .filter((s) => s.products.length > 0);
 
@@ -121,11 +118,13 @@ const banners =
         <div class="grid-3">
           {posts.map((post) => (
             <article class="news-card">
-              <div class="thumb"></div>
+              <a class="thumb" href={`/blog/${post.slug}/`}>
+                {post.image ? <img src={post.image} alt={post.title} loading="lazy" /> : null}
+              </a>
               <div class="body">
-                <h3><a href={`/blog/${post.id}/`}>{post.data.title}</a></h3>
-                <p>{post.data.description}</p>
-                <a class="link-more" href={`/blog/${post.id}/`}>Xem thêm</a>
+                <h3><a href={`/blog/${post.slug}/`}>{post.title}</a></h3>
+                {post.description && <p>{post.description}</p>}
+                <a class="link-more" href={`/blog/${post.slug}/`}>Xem thêm</a>
               </div>
             </article>
           ))}

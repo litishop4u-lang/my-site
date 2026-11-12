@@ -1,58 +1,65 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getEntry, render } from 'astro:content';
 import { getSettings } from '../../lib/db';
+import { getPostBySlug, parseDbDate, formatDate } from '../../lib/posts';
+import { prepareDescription, htmlToPlainText } from '../../lib/rich';
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const post = slug ? await getEntry('blog', slug) : undefined;
+const post = slug ? await getPostBySlug(slug) : null;
 const settings = await getSettings();
 
 if (!post) {
   Astro.response.status = 404;
 }
 
-const { Content } = post ? await render(post) : { Content: null };
+const html = post ? await prepareDescription(post.content, post.title) : '';
+const plain = htmlToPlainText(html);
+const description = post
+  ? (post.description || '').trim() || plain.slice(0, 155) || post.title
+  : 'Bài viết không tồn tại hoặc đã bị xoá.';
 const url = new URL(Astro.url.pathname, Astro.site).toString();
 
 const articleSchema = post
   ? {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: post.data.title,
-      description: post.data.description,
-      datePublished: post.data.pubDate.toISOString(),
-      dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
+      headline: post.title,
+      description,
+      datePublished: parseDbDate(post.pub_date).toISOString(),
+      dateModified: parseDbDate(post.updated_at).toISOString(),
       mainEntityOfPage: url,
-      image: post.data.image ? new URL(post.data.image, Astro.site).toString() : undefined,
+      image: post.image ? new URL(post.image, Astro.site).toString() : undefined,
       author: { '@type': 'Organization', name: settings.site_name || 'Tên Website' },
     }
   : undefined;
 ---
 
 <BaseLayout
-  title={post ? post.data.title : 'Không tìm thấy bài viết'}
-  description={post ? post.data.description : 'Bài viết không tồn tại hoặc đã bị xoá.'}
-  image={post?.data.image}
+  title={post ? post.title : 'Không tìm thấy bài viết'}
+  description={description}
+  image={post?.image || undefined}
   type={post ? 'article' : 'website'}
   noindex={!post}
-  publishedTime={post?.data.pubDate}
-  modifiedTime={post?.data.updatedDate}
+  publishedTime={post ? parseDbDate(post.pub_date) : undefined}
+  modifiedTime={post ? parseDbDate(post.updated_at) : undefined}
   schema={articleSchema}
+  wide={true}
 >
-  {post && Content ? (
-    <article>
-      <h1>{post.data.title}</h1>
-      <div class="post-meta">
-        Đăng ngày {post.data.pubDate.toLocaleDateString('vi-VN')}
-      </div>
-      <Content />
-    </article>
-  ) : (
-    <>
-      <h1>Không tìm thấy bài viết</h1>
-      <p><a href="/blog/">Quay lại tin tức</a></p>
-    </>
-  )}
+  <div class="container page-wide post-page">
+    {post ? (
+      <article class="post">
+        <h1>{post.title}</h1>
+        <div class="post-meta">Đăng ngày {formatDate(post.pub_date)}</div>
+        {post.image && <img class="post-cover" src={post.image} alt={post.title} />}
+        <div class="rich rich-html" set:html={html}></div>
+      </article>
+    ) : (
+      <>
+        <h1>Không tìm thấy bài viết</h1>
+        <p><a href="/blog/">Quay lại tin tức</a></p>
+      </>
+    )}
+  </div>
 </BaseLayout>

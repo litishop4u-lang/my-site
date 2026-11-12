@@ -1,0 +1,77 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { listAdminPosts, deletePost } from '../../../lib/admin-posts';
+import { formatDate } from '../../../lib/posts';
+
+export const prerender = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (form.get('action') === 'delete') {
+    const id = Number(form.get('id'));
+    if (Number.isInteger(id) && id > 0) await deletePost(id);
+  }
+  return Astro.redirect('/admin/tin-tuc/?deleted=1');
+}
+
+const saved = Astro.url.searchParams.get('saved');
+const deleted = Astro.url.searchParams.get('deleted');
+const posts = await listAdminPosts();
+---
+
+<AdminLayout title="Tin tức">
+  <h1>Tin tức</h1>
+
+  {saved && <div class="adm-flash">Đã lưu bài viết.</div>}
+  {deleted && <div class="adm-flash">Đã xoá bài viết.</div>}
+
+  <div class="adm-toolbar">
+    <a class="adm-btn adm-btn-link" href="/admin/tin-tuc/them/">+ Thêm bài viết</a>
+    <span>{posts.length} bài viết</span>
+  </div>
+
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>Ảnh</th>
+          <th>Tiêu đề</th>
+          <th>Ngày đăng</th>
+          <th>Trạng thái</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {posts.length === 0 && (
+          <tr><td colspan="5" class="adm-empty">Chưa có bài viết nào.</td></tr>
+        )}
+        {posts.map((p) => (
+          <tr>
+            <td>
+              {p.image ? <img class="adm-thumb" src={p.image} alt="" loading="lazy" /> : <div class="adm-thumb"></div>}
+            </td>
+            <td><strong>{p.title}</strong></td>
+            <td>{formatDate(p.pub_date)}</td>
+            <td>
+              {p.is_published === 1 ? (
+                <a href={`/blog/${p.slug}/`} target="_blank" rel="noopener">Đã đăng, xem bài</a>
+              ) : (
+                <span class="adm-badge">Bản nháp</span>
+              )}
+            </td>
+            <td>
+              <div class="adm-row-actions">
+                <a class="adm-icon-btn" href={`/admin/tin-tuc/${p.id}/`}>Sửa</a>
+                <form method="post" onsubmit="return confirm('Xoá bài viết này?')">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={p.id} />
+                  <button class="adm-icon-btn danger" type="submit">Xoá</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</AdminLayout>

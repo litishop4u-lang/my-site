@@ -1,0 +1,178 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const IMAGE_EXT = /\.(jpg|png|webp|gif)$/;
+const KEY_RE = /^[a-z0-9\-/]+\.(jpg|png|webp|gif)$/;
+const PAGE_SIZE = 48;
+
+type Raw = { key: string; size: number; uploaded: number };
+
+async function listImages(): Promise<Raw[]> {
+  const items: Raw[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 5; page++) {
+    const list = await env.IMAGES_BUCKET.list({ limit: 1000, cursor });
+    for (const obj of list.objects) {
+      if (IMAGE_EXT.test(obj.key)) {
+        items.push({ key: obj.key, size: obj.size, uploaded: obj.uploaded.getTime() });
+      }
+    }
+    if (!list.truncated) break;
+    cursor = list.cursor;
+  }
+  items.sort((a, b) => b.uploaded - a.uploaded);
+  return items;
+}
+
+async function usedKeys(): Promise<Set<string>> {
+  const chunks: string[] = [];
+  const queries = [
+    'SELECT image, images, description FROM products',
+    'SELECT image, content FROM posts',
+    'SELECT image FROM banners',
+    'SELECT image FROM stores',
+    'SELECT value FROM settings',
+  ];
+  for (const sql of queries) {
+    try {
+      const { results } = await env.DB.prepare(sql).all<Record<string, unknown>>();
+      for (const row of results) {
+        for (const v of Object.values(row)) {
+          if (typeof v === 'string') chunks.push(v);
+        }
+      }
+    } catch {
+      // bảng chưa tồn tại: bỏ qua
+    }
+  }
+  const text = chunks.join('\n');
+  const set = new Set<string>();
+  for (const m of text.matchAll(/\/media\/\?k=([a-z0-9\-/]+\.(?:jpg|png|webp|gif|mp4|webm))/g)) {
+    set.add(m[1]);
+  }
+  return set;
+}
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  const used = await usedKeys();
+
+  if (action === 'delete') {
+    const key = String(form.get('key') ?? '');
+    if (KEY_RE.test(key) && !key.includes('..')) {
+      if (used.has(key)) return Astro.redirect('/admin/thu-vien/?msg=inuse');
+      await env.IMAGES_BUCKET.delete(key);
+    }
+    return Astro.redirect('/admin/thu-vien/?msg=deleted');
+  }
+
+  if (action === 'delete_unused') {
+    const all = await listImages();
+    const keys = all.filter((i) => !used.has(i.key)).map((i) => i.key).slice(0, 300);
+    if (keys.length > 0) await env.IMAGES_BUCKET.delete(keys);
+    return Astro.redirect(`/admin/thu-vien/?msg=cleaned&n=${keys.length}`);
+  }
+
+  return Astro.redirect('/admin/thu-vien/');
+}
+
+const msg = Astro.url.searchParams.get('msg');
+const cleanedCount = Astro.url.searchParams.get('n');
+const filter = Astro.url.searchParams.get('filter') === 'unused' ? 'unused' : 'all';
+const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+
+const [all, used] = await Promise.all([listImages(), usedKeys()]);
+const images = all.map((i) => ({ ...i, url: `/media/?k=${i.key}`, used: used.has(i.key) }));
+const usedCount = images.filter((i) => i.used).length;
+const unusedCount = images.length - usedCount;
+
+const shown = filter === 'unused' ? images.filter((i) => !i.used) : images;
+const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+const pageItems = shown.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+function pageLink(n: number): string {
+  const params = new URLSearchParams();
+  if (filter === 'unused') params.set('filter', 'unused');
+  params.set('page', String(n));
+  return `/admin/thu-vien/?${params.toString()}`;
+}
+
+function fmtDate(ms: number): string {
+  return new Date(ms).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+---
+
+<AdminLayout title="Thư viện ảnh">
+  <h1>Thư viện ảnh</h1>
+
+  {msg === 'deleted' && <div class="adm-flash">Đã xoá ảnh.</div>}
+  {msg === 'cleaned' && <div class="adm-flash">Đã xoá {cleanedCount} ảnh chưa dùng.</div>}
+  {msg === 'uploaded' && <div class="adm-flash">Đã tải ảnh lên thư viện.</div>}
+  {msg === 'inuse' && <div class="adm-error">Ảnh này đang được dùng trên website nên không xoá được. Hãy gỡ ảnh khỏi sản phẩm, bài viết hoặc banner trước.</div>}
+
+  <div class="adm-form lib-upload">
+    <label for="lib-file"><strong>Tải ảnh mới lên thư viện</strong> (chọn được nhiều ảnh cùng lúc)</label>
+    <input id="lib-file" type="file" accept="image/*" multiple />
+    <div class="adm-size">
+      <strong>Kích thước chuẩn:</strong> ảnh sản phẩm 1200 × 1200 px, ảnh bài viết 1200 × 675 px, banner 1920 × 600 px. Ảnh quá lớn được tự thu nhỏ, ảnh trùng với ảnh cũ sẽ không lưu thêm.
+    </div>
+    <div id="lib-status" class="adm-hint"></div>
+  </div>
+
+  <div class="lib-bar">
+    <div class="lib-stats">
+      {images.length} ảnh: <strong>{usedCount}</strong> đang dùng, <strong>{unusedCount}</strong> chưa dùng
+    </div>
+    <div class="lib-tabs">
+      <a href="/admin/thu-vien/" class:list={[{ active: filter === 'all' }]}>Tất cả</a>
+      <a href="/admin/thu-vien/?filter=unused" class:list={[{ active: filter === 'unused' }]}>Chưa dùng</a>
+    </div>
+    {unusedCount > 0 && (
+      <form method="post" onsubmit={`return confirm('Xoá ${unusedCount} ảnh chưa dùng (tối đa 300 ảnh mỗi lần)? Việc này không hoàn tác được.')`}>
+        <input type="hidden" name="action" value="delete_unused" />
+        <button class="adm-icon-btn danger" type="submit">Xoá tất cả ảnh chưa dùng</button>
+      </form>
+    )}
+  </div>
+
+  {pageItems.length === 0 && <p class="adm-empty">Không có ảnh nào.</p>}
+
+  <div class="lib-grid">
+    {pageItems.map((img) => (
+      <figure class="lib-item">
+        <a class="lib-thumb" href={img.url} target="_blank" rel="noopener">
+          <img src={img.url} alt="" loading="lazy" decoding="async" />
+        </a>
+        <figcaption>
+          <div class="lib-meta">
+            <span>{Math.max(1, Math.round(img.size / 1024))} KB</span>
+            <span>{fmtDate(img.uploaded)}</span>
+          </div>
+          <span class:list={['lib-badge', { used: img.used }]}>{img.used ? 'Đang dùng' : 'Chưa dùng'}</span>
+          <div class="lib-actions">
+            <button type="button" class="adm-icon-btn" data-copy={img.url}>Sao chép link</button>
+            {!img.used && (
+              <form method="post" onsubmit="return confirm('Xoá ảnh này? Việc này không hoàn tác được.')">
+                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="key" value={img.key} />
+                <button class="adm-icon-btn danger" type="submit">Xoá</button>
+              </form>
+            )}
+          </div>
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+
+  <div class="adm-pager">
+    <span>Trang {page}/{pages}</span>
+    {page > 1 && <a href={pageLink(page - 1)}>‹ Trước</a>}
+    {page < pages && <a href={pageLink(page + 1)}>Sau ›</a>}
+  </div>
+
+  <script is:inline defer src="/admin-library.js?v=1"></script>
+</AdminLayout>

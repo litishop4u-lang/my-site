@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { getCollection } from 'astro:content';
 
 export const prerender = false;
 
@@ -28,15 +27,21 @@ export const GET: APIRoute = async ({ site, url }) => {
       items.push({ loc: `${origin}/danh-muc/${c.slug}/` });
     }
   } catch {
-    // Chưa có bảng dữ liệu: bỏ qua phần sản phẩm và danh mục.
+    // Chưa có bảng sản phẩm hoặc danh mục: bỏ qua.
   }
 
-  const posts = await getCollection('blog');
-  for (const post of posts) {
-    items.push({
-      loc: `${origin}/blog/${post.id}/`,
-      lastmod: (post.data.updatedDate ?? post.data.pubDate).toISOString().slice(0, 10),
-    });
+  try {
+    const posts = await env.DB.prepare(
+      'SELECT slug, updated_at FROM posts WHERE is_published = 1',
+    ).all<{ slug: string; updated_at: string }>();
+    for (const p of posts.results) {
+      items.push({
+        loc: `${origin}/blog/${p.slug}/`,
+        lastmod: String(p.updated_at).slice(0, 10),
+      });
+    }
+  } catch {
+    // Chưa có bảng bài viết: bỏ qua.
   }
 
   const body = items
