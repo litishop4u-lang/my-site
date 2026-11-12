@@ -3247,3 +3247,12 @@ a.ribbon:focus-visible {
 .news-card .post-meta {
   margin: 0 0 0.4rem;
 }
+
+/* ===== Đồng bộ độ rộng mọi trang (bằng trang chủ) ===== */
+.post-page {
+  max-width: var(--site-max);
+}
+
+.page-wide:has(.product-detail) {
+  max-width: var(--site-max);
+}
