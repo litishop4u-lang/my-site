@@ -3653,3 +3653,17 @@ a.ribbon:focus-visible {
   --color-bg: var(--bg);
   --color-border: var(--line);
 }
+
+/* ===== Khối Tin tức: nền đậm dần từ trên xuống, không còn đường cắt ===== */
+.news-section {
+  background: linear-gradient(
+    to bottom,
+    var(--bg) 0,
+    var(--bg) 110px,
+    #b9bec6 100%
+  );
+}
+
+.news-section .ribbon::after {
+  background: var(--bg);
+}
