@@ -21,6 +21,9 @@ const editorHtml = await descriptionForEditor(post.content);
     <div class="adm-field adm-span2">
       <label for="title">Tiêu đề bài viết *</label>
       <input id="title" name="title" type="text" required maxlength="200" value={post.title} />
+      <div class="pf-actions">
+        <button type="button" class="adm-icon-btn ed-ai" data-ai-titles>✨ AI gợi ý tiêu đề</button>
+      </div>
     </div>
 
     <div class="adm-field">
@@ -36,6 +39,10 @@ const editorHtml = await descriptionForEditor(post.content);
     <div class="adm-field adm-span2">
       <label for="description">Mô tả ngắn (hiện trên Google và ở danh sách tin, nên từ 120 đến 160 ký tự)</label>
       <textarea id="description" name="description" rows="2" maxlength="300">{post.description}</textarea>
+      <div class="pf-actions">
+        <button type="button" class="adm-icon-btn ed-ai" data-ai-meta>✨ AI viết mô tả ngắn từ nội dung bài</button>
+        <span class="adm-hint" data-ai-status></span>
+      </div>
     </div>
 
     <ImageField

@@ -321,4 +321,44 @@
       hidden.value = area.innerHTML;
     });
   }
+
+    var aiBtn = q('[data-rich-ai]');
+  if (aiBtn) {
+    aiBtn.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+    });
+    aiBtn.addEventListener('click', function () {
+      saveRange();
+      if (!window.AiAssist) {
+        alert('Chức năng AI chưa sẵn sàng, vui lòng tải lại trang (Ctrl + F5).');
+        return;
+      }
+      var kind = root.getAttribute('data-rich-kind') || 'post';
+      window.AiAssist.open({
+        modes: [
+          {
+            value: 'article',
+            label: kind === 'about' ? 'Viết nội dung trang Giới thiệu' : 'Viết bài theo chủ đề và ý chính',
+          },
+          { value: 'rewrite', label: 'Viết lại hoặc chỉnh sửa đoạn đang chọn' },
+        ],
+        hint: 'AI sẽ dùng tiêu đề và ghi chú bạn nhập, cùng thông tin cửa hàng trong Cài đặt.',
+        getContext: function () {
+          var t = document.getElementById('title') || document.getElementById('about_title');
+          return { kind: kind, title: t ? t.value.trim() : '' };
+        },
+        getSelectedText: function () {
+          return savedRange ? savedRange.toString() : '';
+        },
+        onInsert: function (html) {
+          insertHtml(html + '<p><br></p>');
+        },
+        onReplace: function (html) {
+          area.innerHTML = html;
+          prepareMedia();
+          selectFigure(null);
+        },
+      });
+    });
+  }
 })();

@@ -15,5 +15,8 @@
       "binding": "IMAGES_BUCKET",
       "bucket_name": "trolucdien-images"
     }
-  ]
+  ],
+  "ai": {
+    "binding": "AI"
+  }
 }

@@ -15,6 +15,8 @@ const TEXT_FIELDS = [
   'hero_title',
   'hero_subtitle',
   'hero_text',
+  'ai_notes',
+  'ai_model',
   'contact_intro',
   'contact_lines',
   'facebook_url',
@@ -94,6 +96,18 @@ const saved = Astro.url.searchParams.get('saved');
       <div class="adm-field">
         <label for="address">Địa chỉ</label>
         <input id="address" name="address" type="text" value={s.address ?? ''} />
+      </div>
+
+            <div class="adm-field adm-span2">
+        <label for="ai_notes">Thông tin cửa hàng cho AI (chỉ ghi những điều chắc chắn đúng)</label>
+        <textarea id="ai_notes" name="ai_notes" rows="4" placeholder="Ví dụ: Cửa hàng bán xe đạp điện chính hãng tại TP.HCM. Miễn phí giao hàng trong bán kính 15km. Hỗ trợ kỹ thuật suốt quá trình sử dụng.">{s.ai_notes ?? ''}</textarea>
+        <div class="adm-size">AI sẽ dùng đúng những điều bạn ghi ở đây khi viết nội dung. Không ghi điều chưa chắc chắn, vì AI sẽ coi đó là sự thật.</div>
+      </div>
+
+      <div class="adm-field adm-span2">
+        <label for="ai_model">Mô hình AI (không bắt buộc, để trống thì dùng mặc định)</label>
+        <input id="ai_model" name="ai_model" type="text" placeholder="@cf/aisingapore/gemma-sea-lion-v4-27b-it" value={s.ai_model ?? ''} />
+        <div class="adm-size">Nếu mô hình mặc định không chạy hoặc văn chưa ưng ý, bạn dán tên mô hình khác của Workers AI vào đây. Xem danh sách hiện có bằng lệnh <code>npx wrangler ai models list</code>. Khi mô hình bạn chọn lỗi, website tự thử lại bằng mô hình dự phòng.</div>
       </div>
 
             <div class="adm-field adm-span2">

@@ -2,14 +2,17 @@
 interface Props {
   name: string;
   html?: string;
+  kind?: 'post' | 'about';
 }
 
-const { name, html = '' } = Astro.props;
+const { name, html = '', kind = 'post' } = Astro.props;
 const initial = JSON.stringify(html).replace(/</g, '\\u003c');
 ---
 
-<div class="ed" data-rich>
+<div class="ed" data-rich data-rich-kind={kind}>
   <div class="ed-toolbar" data-rich-toolbar>
+    <button type="button" class="ed-ai" data-rich-ai title="AI soạn nội dung giúp bạn">✨ AI viết giúp</button>
+    <span class="ed-sep"></span>
     <select data-rich-block title="Kiểu đoạn">
       <option value="">Kiểu đoạn</option>
       <option value="p">Đoạn văn</option>

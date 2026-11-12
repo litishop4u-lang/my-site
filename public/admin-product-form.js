@@ -582,5 +582,41 @@
       }
     });
   });
+
+    /* ===== Nút AI viết mô tả sản phẩm ===== */
+  const aiBtn = document.getElementById('ed-ai');
+  if (aiBtn) {
+    aiBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    aiBtn.addEventListener('click', () => {
+      saveRange();
+      if (!window.AiAssist) {
+        alert('Chức năng AI chưa sẵn sàng, vui lòng tải lại trang (Ctrl + F5).');
+        return;
+      }
+      window.AiAssist.open({
+        modes: [
+          { value: 'product_description', label: 'Viết mô tả sản phẩm' },
+          { value: 'rewrite', label: 'Viết lại hoặc chỉnh sửa đoạn đang chọn' },
+        ],
+        hint: 'AI sẽ dùng tên sản phẩm, thương hiệu, danh mục và các dòng thông số kỹ thuật bạn đã nhập.',
+        getContext: () => {
+          const cat = document.getElementById('category_id');
+          const brand = document.getElementById('brand_id');
+          return {
+            name: document.getElementById('name').value.trim(),
+            brand: brand && brand.value ? brand.options[brand.selectedIndex].text : '',
+            category: cat && cat.value ? cat.options[cat.selectedIndex].text : '',
+            specs: state.specs.filter((s) => s.label.trim() && s.value.trim()),
+          };
+        },
+        getSelectedText: () => (savedRange ? savedRange.toString() : ''),
+        onInsert: (html) => insertHtml(html + '<p><br></p>'),
+        onReplace: (html) => {
+          area.innerHTML = html;
+          prepareMedia();
+        },
+      });
+    });
+  }
 })();
 
