@@ -2588,3 +2588,90 @@ a {
     margin-left: auto;
   }
 }
+
+/* ===== Trang rộng hơn, 5 sản phẩm một hàng, các mục sát nhau ===== */
+:root {
+  --site-max: 1500px;
+}
+
+.container {
+  max-width: var(--site-max);
+}
+
+.banner-slider {
+  max-width: var(--site-max);
+  margin: 1.5rem auto 2.25rem;
+}
+
+.grid-4 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1179px) {
+  .grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  .grid-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----- Khoảng cách giữa các mục ----- */
+.section {
+  padding: 1.6rem 0;
+}
+
+.section-head {
+  margin-bottom: 1.25rem;
+}
+
+.news-section {
+  padding: 2rem 0 2.2rem;
+}
+
+/* ----- Tên mục là liên kết bấm được ----- */
+a.ribbon {
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+a.ribbon::before {
+  transition: background 0.15s ease;
+}
+
+a.ribbon:hover {
+  color: var(--accent);
+}
+
+a.ribbon:hover::before {
+  background: var(--accent-btn);
+}
+
+a.ribbon:focus-visible {
+  outline: 3px solid var(--accent-btn);
+  outline-offset: 4px;
+}

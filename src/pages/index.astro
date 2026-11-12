@@ -99,8 +99,9 @@ const banners =
     <section class="section">
       <div class="container">
         <div class="section-head">
-          <h2 class="section-title"><span class="ribbon">{section.category.name}</span></h2>
-          <a class="section-more" href={`/danh-muc/${section.category.slug}/`}>Xem thêm</a>
+          <h2 class="section-title">
+            <a class="ribbon" href={`/danh-muc/${section.category.slug}/`}>{section.category.name}</a>
+          </h2>
         </div>
         <div class="grid-4">
           {section.products.map((p) => <ProductCard product={p} />)}
@@ -113,8 +114,9 @@ const banners =
     <section class="section news-section">
       <div class="container">
         <div class="section-head">
-          <h2 class="section-title"><span class="ribbon">Tin tức – Sự kiện</span></h2>
-          <a class="section-more" href="/blog/">Xem thêm</a>
+          <h2 class="section-title">
+            <a class="ribbon" href="/blog/">Tin tức – Sự kiện</a>
+          </h2>
         </div>
         <div class="grid-3">
           {posts.map((post) => (
