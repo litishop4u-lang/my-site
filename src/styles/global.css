@@ -3642,3 +3642,14 @@ a.ribbon:focus-visible {
     gap: 0.75rem;
   }
 }
+
+/* ===== Nền chính sáng hơn một chút ===== */
+:root {
+  --bg: #dde0e5;
+  --bg-soft: #d3d6dc;
+  --surface: #eef0f2;
+  --surface-2: #f6f7f9;
+  --line: #bfc4cb;
+  --color-bg: var(--bg);
+  --color-border: var(--line);
+}
