@@ -3645,7 +3645,7 @@ a.ribbon:focus-visible {
 
 /* ===== Nền chính sáng hơn một chút ===== */
 :root {
-  --bg: #dde0e5;
+  --bg: #e6e8ec;
   --bg-soft: #d3d6dc;
   --surface: #eef0f2;
   --surface-2: #f6f7f9;
