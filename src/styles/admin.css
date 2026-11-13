@@ -1418,3 +1418,50 @@
   height: 100%;
   object-fit: cover;
 }
+
+/* ===== Phân loại sản phẩm (admin) ===== */
+.pv-wrap {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pv-group {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #d9dce3;
+  border-radius: 10px;
+  background: #f8f9fb;
+}
+
+.pv-group-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+.pv-group-name {
+  font-weight: 700;
+}
+
+.pv-options {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.pv-option-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr auto;
+  gap: 0.5rem;
+}
+
+.pv-group .adm-icon-btn {
+  justify-self: start;
+}
+
+@media (max-width: 640px) {
+  .pv-option-row {
+    grid-template-columns: 1fr;
+  }
+}

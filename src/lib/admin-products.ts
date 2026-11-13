@@ -3,6 +3,8 @@ import { slugify } from './slug';
 import { parseImages, parseSpecs } from './content';
 import type { Spec } from './content';
 import { cleanDescription } from './rich';
+import { parseVariants } from './variants';
+import type { VariantGroup } from './variants';
 
 export type Brand = {
   id: number;
@@ -21,6 +23,7 @@ export type ProductInput = {
   image: string;
   images: string[];
   specs: Spec[];
+  variants: VariantGroup[];
   description: string;
   is_active: number;
 };
@@ -67,6 +70,7 @@ export function emptyProduct(): ProductInput {
     image: '',
     images: [],
     specs: defaultSpecs(),
+    variants: [],
     description: '',
     is_active: 1,
   };
@@ -98,6 +102,7 @@ export function parseProductForm(form: FormData): ProductInput {
     image: images[0] ?? '',
     images,
     specs,
+    variants: parseVariants(String(form.get('variants') ?? '')),
     description: String(form.get('description') ?? '').slice(0, 300000),
     is_active: form.get('is_active') ? 1 : 0,
   };
@@ -173,6 +178,7 @@ export async function getProductById(id: number): Promise<(ProductInput & { id: 
     image: images[0] ?? '',
     images,
     specs: specs.length > 0 ? specs : defaultSpecs(),
+    variants: parseVariants(String(row.variants ?? '')),
     description: String(row.description ?? ''),
     is_active: Number(row.is_active ?? 1),
   };
@@ -182,8 +188,8 @@ export async function insertProduct(p: ProductInput): Promise<void> {
   const description = await cleanDescription(p.description);
   await env.DB.prepare(
     `INSERT INTO products
-      (name, slug, sku, category_id, brand_id, price, old_price, image, images, specs, description, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (name, slug, sku, category_id, brand_id, price, old_price, image, images, specs, variants, description, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       p.name,
@@ -196,6 +202,7 @@ export async function insertProduct(p: ProductInput): Promise<void> {
       p.image || null,
       p.images.length > 0 ? JSON.stringify(p.images) : null,
       p.specs.length > 0 ? JSON.stringify(p.specs) : null,
+      p.variants.length > 0 ? JSON.stringify(p.variants) : null,
       description || null,
       p.is_active,
     )
@@ -207,7 +214,7 @@ export async function updateProduct(id: number, p: ProductInput): Promise<void> 
   await env.DB.prepare(
     `UPDATE products SET
        name = ?, slug = ?, sku = ?, category_id = ?, brand_id = ?, price = ?, old_price = ?,
-       image = ?, images = ?, specs = ?, description = ?, is_active = ?, updated_at = datetime('now')
+       image = ?, images = ?, specs = ?, variants = ?, description = ?, is_active = ?, updated_at = datetime('now')
      WHERE id = ?`,
   )
     .bind(
@@ -221,6 +228,7 @@ export async function updateProduct(id: number, p: ProductInput): Promise<void> 
       p.image || null,
       p.images.length > 0 ? JSON.stringify(p.images) : null,
       p.specs.length > 0 ? JSON.stringify(p.specs) : null,
+      p.variants.length > 0 ? JSON.stringify(p.variants) : null,
       description || null,
       p.is_active,
       id,

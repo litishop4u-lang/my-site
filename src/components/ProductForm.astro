@@ -16,6 +16,7 @@ const { product, categories, brands, error = '', submitLabel } = Astro.props;
 const money = (n: number) => (n > 0 ? n.toLocaleString('vi-VN') : '');
 
 const editorHtml = await descriptionForEditor(product.description);
+const variantsData = JSON.stringify(product.variants ?? []).replace(/</g, '\\u003c');
 const initialData = JSON.stringify({
   images: product.images,
   specs: product.specs,
@@ -93,6 +94,17 @@ const initialData = JSON.stringify({
       <p class="adm-hint">Dòng nào để trống phần giá trị sẽ không hiện trên website.</p>
       <div id="pf-specs" class="pf-specs"></div>
       <button id="pf-add-spec" class="adm-icon-btn" type="button">+ Thêm dòng thông số</button>
+    </div>
+
+    <div class="adm-field adm-span2">
+      <label>Phân loại sản phẩm</label>
+      <p class="adm-hint">Dùng khi sản phẩm có nhiều màu, nhiều phiên bản... Ô "Giá riêng" bỏ trống thì dùng giá chung của sản phẩm.</p>
+      <div id="pf-variants" class="pv-wrap"></div>
+      <div class="pf-actions">
+        <button id="pv-add-color" class="adm-icon-btn" type="button">+ Màu sắc</button>
+        <button id="pv-add-version" class="adm-icon-btn" type="button">+ Phiên bản</button>
+        <button id="pv-add-group" class="adm-icon-btn" type="button">+ Nhóm khác</button>
+      </div>
     </div>
 
     <div class="adm-field adm-span2">
@@ -188,6 +200,7 @@ const initialData = JSON.stringify({
 
   <input type="hidden" name="images" id="pf-images-input" />
   <input type="hidden" name="specs" id="pf-specs-input" />
+  <input type="hidden" name="variants" id="pf-variants-input" />
   <input type="hidden" name="description" id="pf-desc-input" />
 
   <div id="pf-status" class="adm-hint"></div>
@@ -200,3 +213,6 @@ const initialData = JSON.stringify({
 
 <script is:inline type="application/json" id="pf-data" set:html={initialData}></script>
 <script is:inline defer src="/admin-product-form.js?v=1"></script>
+
+<script is:inline type="application/json" id="pf-variants-data" set:html={variantsData}></script>
+<script is:inline defer src="/admin-variants.js?v=1"></script>

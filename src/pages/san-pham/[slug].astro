@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import StoreInfo from '../../components/StoreInfo.astro';
 import { getProductBySlug, getRelatedProducts, getSettings, formatPrice } from '../../lib/db';
 import { parseImages, parseSpecs } from '../../lib/content';
+import { parseVariants } from '../../lib/variants';
 import { prepareDescription, htmlToPlainText } from '../../lib/rich';
 
 const { slug } = Astro.params;
@@ -19,6 +20,7 @@ const url = new URL(Astro.url.pathname, Astro.site).toString();
 
 const images = product ? parseImages(product.images, product.image) : [];
 const specs = product ? parseSpecs(product.specs).filter((s) => s.label && s.value) : [];
+const variants = product ? parseVariants((product as { variants?: string | null }).variants) : [];
 const descriptionHtml = product ? await prepareDescription(product.description, product.name) : '';
 const plainDescription = htmlToPlainText(descriptionHtml);
 
@@ -124,10 +126,26 @@ const productSchema = product
             <h1>{product.name}</h1>
             {product.brand_name && <p class="meta-line">Thương hiệu: <strong>{product.brand_name}</strong></p>}
             {product.sku && <p class="meta-line">Mã sản phẩm: {product.sku}</p>}
-            <p class="price price-lg">
-              {product.old_price > product.price && <del>{formatPrice(product.old_price)}</del>}
-              {product.price > 0 ? formatPrice(product.price) : 'Liên hệ để biết giá'}
+            <p class="price price-lg" data-price-box>
+              {product.old_price > product.price && <del data-price-old>{formatPrice(product.old_price)}</del>}
+              <span data-price-now>{product.price > 0 ? formatPrice(product.price) : 'Liên hệ để biết giá'}</span>
             </p>
+            {variants.length > 0 && (
+              <div class="variant-box" data-variants>
+                {variants.map((g) => (
+                  <div class="variant-group" data-variant-group>
+                    <div class="variant-title">{g.name}: <strong data-variant-selected></strong></div>
+                    <div class="variant-options">
+                      {g.options.map((o) => (
+                        <button type="button" class="variant-chip" aria-pressed="false" data-label={o.label} data-price={o.price}>
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div class="actions">
               {phone && <a class="btn" href={`tel:${phone.replace(/\s/g, '')}`} aria-label={`Gọi ${phone}`}>Call</a>}
               {zalo && (
@@ -210,4 +228,5 @@ const productSchema = product
   {product && <script is:inline type="application/json" id="current-product" set:html={currentData}></script>}
   <script is:inline defer src="/gallery.js?v=2"></script>
   <script is:inline defer src="/viewed.js?v=1"></script>
+  {variants.length > 0 && <script is:inline defer src="/variants.js?v=1"></script>}
 </BaseLayout>
