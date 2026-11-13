@@ -31,7 +31,7 @@ export async function getProductsForCategories(ids: number[]): Promise<CatalogPr
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        WHERE p.is_active = 1 AND p.category_id IN (${marks})
-       ORDER BY p.id DESC
+      ORDER BY (CASE WHEN p.sort_order > 0 THEN 0 ELSE 1 END), p.sort_order, p.id DESC
        LIMIT 1000`,
     )
       .bind(...ids)

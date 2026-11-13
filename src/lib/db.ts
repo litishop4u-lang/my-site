@@ -67,9 +67,9 @@ export async function getProducts(
   const limit = options.limit ?? 200;
   const statement = options.categoryId
     ? env.DB.prepare(
-        'SELECT * FROM products WHERE is_active = 1 AND category_id = ? ORDER BY id DESC LIMIT ?',
+      'SELECT * FROM products WHERE is_active = 1 AND category_id = ? ORDER BY (CASE WHEN sort_order > 0 THEN 0 ELSE 1 END), sort_order, id DESC LIMIT ?',
       ).bind(options.categoryId, limit)
-    : env.DB.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id DESC LIMIT ?').bind(
+    : env.DB.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY (CASE WHEN sort_order > 0 THEN 0 ELSE 1 END), sort_order, id DESC LIMIT ?').bind(
         limit,
       );
   const { results } = await statement.all<Product>();

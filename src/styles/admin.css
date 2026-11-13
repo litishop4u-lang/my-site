@@ -1465,3 +1465,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Ô đặt vị trí sản phẩm ===== */
+.pos-input {
+  width: 72px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 6px;
+  text-align: center;
+  font: inherit;
+  background: #ffffff;
+}
+
+.pos-input::placeholder {
+  color: #9aa0ab;
+  font-size: 0.8rem;
+}
+
+.pos-input.pos-busy {
+  background: #fff8e1;
+}
+
+.pos-input.pos-ok {
+  border-color: #1d6b3c;
+  background: #e3f3e8;
+}
+
+.pos-input.pos-err {
+  border-color: #b3261e;
+  background: #fdeceb;
+}

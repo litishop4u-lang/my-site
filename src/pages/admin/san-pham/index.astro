@@ -2,11 +2,20 @@
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { listProducts, deleteProduct } from '../../../lib/admin-products';
 import { formatPrice } from '../../../lib/db';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
+if (form.get('action') === 'position') {
+    const pid = Number(form.get('id'));
+    const pos = Math.max(0, Math.min(9999, parseInt(String(form.get('position') ?? '0'), 10) || 0));
+    if (Number.isInteger(pid) && pid > 0) {
+      await env.DB.prepare('UPDATE products SET sort_order = ? WHERE id = ?').bind(pos, pid).run();
+    }
+    return new Response('ok');
+  }
   if (form.get('action') === 'delete') {
     const id = Number(form.get('id'));
     if (Number.isInteger(id) && id > 0) {
@@ -23,6 +32,17 @@ const deleted = Astro.url.searchParams.get('deleted');
 
 const { items, total, pageSize } = await listProducts({ q, page });
 const pages = Math.max(1, Math.ceil(total / pageSize));
+
+const posMap = new Map<number, number>();
+if (items.length > 0) {
+  const marks = items.map(() => '?').join(',');
+  const { results: posRows } = await env.DB.prepare(
+    `SELECT id, sort_order FROM products WHERE id IN (${marks})`,
+  )
+    .bind(...items.map((p) => p.id))
+    .all<{ id: number; sort_order: number }>();
+  for (const r of posRows) posMap.set(r.id, r.sort_order);
+}
 
 function fmtDate(value: string): string {
   const d = new Date(value.replace(' ', 'T') + 'Z');
@@ -56,6 +76,7 @@ function pageLink(n: number): string {
     <table class="adm-table">
       <thead>
         <tr>
+          <th>Vị trí</th>
           <th>Hình ảnh</th>
           <th>Tên sản phẩm</th>
           <th>SKU</th>
@@ -69,10 +90,22 @@ function pageLink(n: number): string {
       </thead>
       <tbody>
         {items.length === 0 && (
-          <tr><td colspan="9" class="adm-empty">Không có sản phẩm nào.</td></tr>
+          <tr><td colspan="10" class="adm-empty">Không có sản phẩm nào.</td></tr>
         )}
         {items.map((p) => (
           <tr>
+            <td>
+              <input
+                class="pos-input"
+                type="text"
+                inputmode="numeric"
+                maxlength="4"
+                placeholder="Tự động"
+                title="1 = hiện đầu tiên. Để trống = tự động"
+                data-id={p.id}
+                value={(posMap.get(p.id) ?? 0) > 0 ? String(posMap.get(p.id)) : ''}
+              />
+            </td>
             <td>
               {p.image ? (
                 <img class="adm-thumb" src={p.image} alt="" loading="lazy" />
@@ -114,4 +147,5 @@ function pageLink(n: number): string {
     {page > 1 && <a href={pageLink(page - 1)}>‹ Trước</a>}
     {page < pages && <a href={pageLink(page + 1)}>Sau ›</a>}
   </div>
+  <script is:inline defer src="/admin-position.js?v=1"></script>
 </AdminLayout>
