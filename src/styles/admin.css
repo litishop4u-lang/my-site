@@ -1495,3 +1495,54 @@
   border-color: #b3261e;
   background: #fdeceb;
 }
+
+/* ===== Danh sách sản phẩm: nhóm theo danh mục, ô vị trí có nút Lưu ===== */
+.adm-group-row td {
+  padding: 0.6rem 0.9rem;
+  background: #e8e6f4;
+  color: #2d2a5a;
+  font-weight: 800;
+  font-size: 0.95rem;
+  border-top: 2px solid #c9c5e6;
+}
+
+.adm-group-count {
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: #5f6368;
+}
+
+.pos-cell {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+}
+
+.pos-cell .pos-input {
+  width: 84px;
+}
+
+.pos-cell .pos-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.pos-cell.locked .pos-input {
+  opacity: 0.45;
+  background: #eef0f4;
+  cursor: not-allowed;
+}
+
+.pos-cell.pos-err .pos-input {
+  border-color: #b3261e;
+  background: #fdeceb;
+}
+
+.adm-search select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  max-width: 220px;
+}

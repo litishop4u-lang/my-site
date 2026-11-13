@@ -1,14 +1,16 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import { listProducts, deleteProduct } from '../../../lib/admin-products';
-import { formatPrice } from '../../../lib/db';
 import { env } from 'cloudflare:workers';
+import { deleteProduct } from '../../../lib/admin-products';
+import { getCategories, formatPrice } from '../../../lib/db';
+import { orderCategories } from '../../../lib/catalog';
 
 export const prerender = false;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
-if (form.get('action') === 'position') {
+
+  if (form.get('action') === 'position') {
     const pid = Number(form.get('id'));
     const pos = Math.max(0, Math.min(9999, parseInt(String(form.get('position') ?? '0'), 10) || 0));
     if (Number.isInteger(pid) && pid > 0) {
@@ -16,6 +18,7 @@ if (form.get('action') === 'position') {
     }
     return new Response('ok');
   }
+
   if (form.get('action') === 'delete') {
     const id = Number(form.get('id'));
     if (Number.isInteger(id) && id > 0) {
@@ -25,23 +28,73 @@ if (form.get('action') === 'position') {
   return Astro.redirect('/admin/san-pham/?deleted=1');
 }
 
+const PAGE_SIZE = 50;
 const q = (Astro.url.searchParams.get('q') ?? '').trim();
+const cat = Astro.url.searchParams.get('cat') ?? '';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
 const saved = Astro.url.searchParams.get('saved');
 const deleted = Astro.url.searchParams.get('deleted');
 
-const { items, total, pageSize } = await listProducts({ q, page });
-const pages = Math.max(1, Math.ceil(total / pageSize));
+const categories = orderCategories(await getCategories());
 
-const posMap = new Map<number, number>();
-if (items.length > 0) {
-  const marks = items.map(() => '?').join(',');
-  const { results: posRows } = await env.DB.prepare(
-    `SELECT id, sort_order FROM products WHERE id IN (${marks})`,
-  )
-    .bind(...items.map((p) => p.id))
-    .all<{ id: number; sort_order: number }>();
-  for (const r of posRows) posMap.set(r.id, r.sort_order);
+const where: string[] = [];
+const binds: (string | number)[] = [];
+if (q) {
+  where.push('(p.name LIKE ? OR p.sku LIKE ?)');
+  binds.push(`%${q}%`, `%${q}%`);
+}
+if (cat === 'none') {
+  where.push('p.category_id IS NULL');
+} else if (/^\d+$/.test(cat)) {
+  where.push('p.category_id IN (SELECT id FROM categories WHERE id = ? OR parent_id = ?)');
+  binds.push(Number(cat), Number(cat));
+}
+const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+const totalRow = await env.DB.prepare(`SELECT COUNT(*) AS n FROM products p ${whereSql}`)
+  .bind(...binds)
+  .first<{ n: number }>();
+const total = totalRow?.n ?? 0;
+const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+const { results: items } = await env.DB.prepare(
+  `SELECT p.id, p.name, p.sku, p.price, p.old_price, p.image, p.is_active, p.sort_order,
+          p.created_at, p.updated_at, p.category_id,
+          c.name AS category_name, b.name AS brand_name
+   FROM products p
+   LEFT JOIN categories c ON c.id = p.category_id
+   LEFT JOIN brands b ON b.id = p.brand_id
+   ${whereSql}
+   ORDER BY (CASE WHEN c.id IS NULL THEN 1 ELSE 0 END), c.sort_order, c.name,
+            (CASE WHEN p.sort_order > 0 THEN 0 ELSE 1 END), p.sort_order, p.id DESC
+   LIMIT ? OFFSET ?`,
+)
+  .bind(...binds, PAGE_SIZE, (page - 1) * PAGE_SIZE)
+  .all<{
+    id: number;
+    name: string;
+    sku: string | null;
+    price: number;
+    old_price: number;
+    image: string | null;
+    is_active: number;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+    category_id: number | null;
+    category_name: string | null;
+    brand_name: string | null;
+  }>();
+
+const groups: { key: string; title: string; rows: typeof items }[] = [];
+for (const p of items) {
+  const key = p.category_id == null ? 'none' : String(p.category_id);
+  let g = groups[groups.length - 1];
+  if (!g || g.key !== key) {
+    g = { key, title: p.category_name ?? 'Chưa có danh mục', rows: [] };
+    groups.push(g);
+  }
+  g.rows.push(p);
 }
 
 function fmtDate(value: string): string {
@@ -52,6 +105,7 @@ function fmtDate(value: string): string {
 function pageLink(n: number): string {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
+  if (cat) params.set('cat', cat);
   params.set('page', String(n));
   return `/admin/san-pham/?${params.toString()}`;
 }
@@ -67,10 +121,22 @@ function pageLink(n: number): string {
     <a class="adm-btn adm-btn-link" href="/admin/san-pham/them/">+ Thêm sản phẩm</a>
     <a class="adm-btn adm-btn-link" href="/admin/san-pham/nhap/">Nhập hàng loạt</a>
     <form class="adm-search" method="get">
+      <select name="cat" onchange="this.form.submit()" aria-label="Lọc theo danh mục">
+        <option value="">Tất cả danh mục</option>
+        {categories.map((c) => (
+          <option value={c.id} selected={cat === String(c.id)}>{c.parent_id ? '— ' : ''}{c.name}</option>
+        ))}
+        <option value="none" selected={cat === 'none'}>Chưa có danh mục</option>
+      </select>
       <input type="search" name="q" value={q} placeholder="Tìm theo tên hoặc SKU" />
       <button class="adm-btn" type="submit">Tìm</button>
     </form>
   </div>
+
+  <p class="adm-hint">
+    Sản phẩm được xếp theo từng danh mục. Ở cột <strong>Vị trí</strong>, gõ số (1 = hiện đầu tiên) rồi bấm <strong>Lưu</strong>.
+    Sau khi lưu ô sẽ mờ đi, bấm <strong>Chỉnh sửa</strong> để sửa lại. Để trống = tự động (sản phẩm mới nhất trước).
+  </p>
 
   <div class="adm-table-wrap">
     <table class="adm-table">
@@ -80,7 +146,6 @@ function pageLink(n: number): string {
           <th>Hình ảnh</th>
           <th>Tên sản phẩm</th>
           <th>SKU</th>
-          <th>Danh mục</th>
           <th>Thương hiệu</th>
           <th>Giá bán</th>
           <th>Ngày tạo</th>
@@ -90,53 +155,62 @@ function pageLink(n: number): string {
       </thead>
       <tbody>
         {items.length === 0 && (
-          <tr><td colspan="10" class="adm-empty">Không có sản phẩm nào.</td></tr>
+          <tr><td colspan="9" class="adm-empty">Không có sản phẩm nào.</td></tr>
         )}
-        {items.map((p) => (
-          <tr>
-            <td>
-              <input
-                class="pos-input"
-                type="text"
-                inputmode="numeric"
-                maxlength="4"
-                placeholder="Tự động"
-                title="1 = hiện đầu tiên. Để trống = tự động"
-                data-id={p.id}
-                value={(posMap.get(p.id) ?? 0) > 0 ? String(posMap.get(p.id)) : ''}
-              />
-            </td>
-            <td>
-              {p.image ? (
-                <img class="adm-thumb" src={p.image} alt="" loading="lazy" />
-              ) : (
-                <div class="adm-thumb"></div>
-              )}
-            </td>
-            <td>
-              <strong>{p.name}</strong>
-              {p.is_active === 0 && <span class="adm-badge">Đang ẩn</span>}
-            </td>
-            <td>{p.sku ?? ''}</td>
-            <td>{p.category_name ?? ''}</td>
-            <td>{p.brand_name ?? ''}</td>
-            <td>
-              {p.price > 0 ? formatPrice(p.price) : 'Liên hệ'}
-              {p.old_price > p.price && <span class="adm-old">{formatPrice(p.old_price)}</span>}
-            </td>
-            <td>{fmtDate(p.created_at)}</td>
-            <td>{fmtDate(p.updated_at)}</td>
-            <td>
-              <div class="adm-row-actions">
-                <a class="adm-icon-btn" href={`/admin/san-pham/${p.id}/`}>Sửa</a>
-                <form method="post" onsubmit="return confirm('Xoá sản phẩm này?')">
-                  <input type="hidden" name="action" value="delete" />
-                  <input type="hidden" name="id" value={p.id} />
-                  <button class="adm-icon-btn danger" type="submit">Xoá</button>
-                </form>
-              </div>
-            </td>
-          </tr>
+        {groups.map((g) => (
+          <>
+            <tr class="adm-group-row">
+              <td colspan="9">{g.title} <span class="adm-group-count">({g.rows.length} sản phẩm trên trang này)</span></td>
+            </tr>
+            {g.rows.map((p) => (
+              <tr>
+                <td>
+                  <div class={`pos-cell${p.sort_order > 0 ? ' locked' : ''}`} data-pos-cell>
+                    <input
+                      class="pos-input"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="4"
+                      placeholder="Tự động"
+                      data-id={p.id}
+                      value={p.sort_order > 0 ? String(p.sort_order) : ''}
+                      disabled={p.sort_order > 0}
+                    />
+                    <button type="button" class="adm-icon-btn pos-btn">{p.sort_order > 0 ? 'Chỉnh sửa' : 'Lưu'}</button>
+                  </div>
+                </td>
+                <td>
+                  {p.image ? (
+                    <img class="adm-thumb" src={p.image} alt="" loading="lazy" />
+                  ) : (
+                    <div class="adm-thumb"></div>
+                  )}
+                </td>
+                <td>
+                  <strong>{p.name}</strong>
+                  {p.is_active === 0 && <span class="adm-badge">Đang ẩn</span>}
+                </td>
+                <td>{p.sku ?? ''}</td>
+                <td>{p.brand_name ?? ''}</td>
+                <td>
+                  {p.price > 0 ? formatPrice(p.price) : 'Liên hệ'}
+                  {p.old_price > p.price && <span class="adm-old">{formatPrice(p.old_price)}</span>}
+                </td>
+                <td>{fmtDate(p.created_at)}</td>
+                <td>{fmtDate(p.updated_at)}</td>
+                <td>
+                  <div class="adm-row-actions">
+                    <a class="adm-icon-btn" href={`/admin/san-pham/${p.id}/`}>Sửa</a>
+                    <form method="post" onsubmit="return confirm('Xoá sản phẩm này?')">
+                      <input type="hidden" name="action" value="delete" />
+                      <input type="hidden" name="id" value={p.id} />
+                      <button class="adm-icon-btn danger" type="submit">Xoá</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </>
         ))}
       </tbody>
     </table>
@@ -147,5 +221,6 @@ function pageLink(n: number): string {
     {page > 1 && <a href={pageLink(page - 1)}>‹ Trước</a>}
     {page < pages && <a href={pageLink(page + 1)}>Sau ›</a>}
   </div>
-  <script is:inline defer src="/admin-position.js?v=1"></script>
+
+  <script is:inline defer src="/admin-position.js?v=2"></script>
 </AdminLayout>
