@@ -29,7 +29,7 @@ const TEXT_FIELDS = [
   'messenger',
   'work_hours',
 ] as const;
-const IMAGE_FIELDS = ['logo', 'hero_image'] as const;
+const IMAGE_FIELDS = ['logo', 'favicon', 'hero_image'] as const;
 const MEDIA_PATTERN = /^\/media\/\?k=[a-z0-9\-/]+\.(jpg|png|webp|gif)$/;
 
 if (Astro.request.method === 'POST') {
@@ -77,7 +77,15 @@ const saved = Astro.url.searchParams.get('saved');
         maxSize={800}
         hint="480 × 150 px (tỉ lệ 3,2:1), PNG hoặc WebP nền trong suốt, chữ và hình màu sáng."
       />
-
+      
+      <ImageField
+        name="favicon"
+        label="Favicon (biểu tượng nhỏ hiện trên tab trình duyệt và kết quả Google)"
+        value={s.favicon ?? ''}
+        maxSize={512}
+        format="png"
+        hint="512 × 512 px, ảnh vuông 1:1, định dạng PNG (nền trong suốt hoặc nền màu). Tối thiểu 48 × 48 px. Nên dùng hình đơn giản như chữ LK, vì biểu tượng rất nhỏ. Nếu ảnh không vuông, hệ thống tự cắt phần giữa thành hình vuông."
+      />
       <div class="adm-field">
         <label for="phone">Số điện thoại</label>
         <input id="phone" name="phone" type="text" value={s.phone ?? ''} />

@@ -19,6 +19,9 @@ interface Props {
 
 const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
 const SITE_NAME = settings.site_name || 'Tên Website';
+const faviconUrl = /^\/media\/\?k=[a-z0-9\-/]+\.(png|webp|jpg|gif)$/.test(settings.favicon ?? '')
+  ? settings.favicon
+  : '';
 
 const {
   title,
@@ -50,7 +53,14 @@ const websiteSchema = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {faviconUrl ? (
+      <>
+        <link rel="icon" href={faviconUrl} />
+        <link rel="apple-touch-icon" href={faviconUrl} />
+      </>
+    ) : (
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    )}
     <meta name="generator" content={Astro.generator} />
 
     <title>{fullTitle}</title>

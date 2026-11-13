@@ -1,7 +1,27 @@
 (function () {
   var submitBtn = document.getElementById('submit-btn');
 
-  async function compress(file, maxSize) {
+  async function compress(file, maxSize, format) {
+    if (format === 'png') {
+      try {
+        var src = await createImageBitmap(file);
+        var side = Math.min(src.width, src.height);
+        var sx = Math.round((src.width - side) / 2);
+        var sy = Math.round((src.height - side) / 2);
+        var out = Math.min(side, maxSize);
+        var square = document.createElement('canvas');
+        square.width = out;
+        square.height = out;
+        square.getContext('2d').drawImage(src, sx, sy, side, side, 0, 0, out, out);
+        var pngBlob = await new Promise(function (resolve) {
+          square.toBlob(resolve, 'image/png');
+        });
+        if (pngBlob) return new File([pngBlob], 'favicon.png', { type: 'image/png' });
+      } catch (e) {
+        return file;
+      }
+      return file;
+    }
     if (file.type === 'image/gif') return file;
     try {
       var bitmap = await createImageBitmap(file);
@@ -50,7 +70,7 @@
       statusEl.textContent = 'Đang tải ảnh lên...';
       if (submitBtn) submitBtn.disabled = true;
       try {
-        var small = await compress(file, maxSize);
+        var small = await compress(file, maxSize, box.getAttribute('data-format'));
         var data = new FormData();
         data.append('file', small);
         var res = await fetch('/api/admin/upload/', { method: 'POST', body: data });

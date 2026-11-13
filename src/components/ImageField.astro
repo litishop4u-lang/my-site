@@ -5,12 +5,13 @@ interface Props {
   value?: string;
   maxSize?: number;
   hint?: string;
+  format?: string;
 }
 
-const { name, label, value = '', maxSize = 1600, hint = '' } = Astro.props;
+const { name, label, value = '', maxSize = 1600, hint = '', format = '' } = Astro.props;
 ---
 
-<div class="adm-field adm-span2" data-image-field data-max={maxSize}>
+<div class="adm-field adm-span2" data-image-field data-max={maxSize} data-format={format || undefined}>
   <label>{label}</label>
   <div class="adm-image-box">
     <img class="adm-image-preview" data-preview alt="Ảnh xem trước" src={value || undefined} hidden={!value} />
