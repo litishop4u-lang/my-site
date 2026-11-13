@@ -3715,3 +3715,47 @@ a.ribbon:focus-visible {
   color: #ffffff;
   font-weight: 700;
 }
+
+/* ===== Trang bài viết: khung hẹp hơn, ảnh và video nhỏ lại ===== */
+.post-page {
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.post-cover {
+  width: 100%;
+  max-width: 720px;
+  margin: 1rem auto 1.25rem;
+  border-radius: 12px;
+}
+
+.post .rich figure,
+.post .rich .video-wrap,
+.post .rich .embed-wrap {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.post .rich > img,
+.post .rich p > img {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.post .rich figure[data-size='m'] {
+  width: 70%;
+}
+
+.post .rich figure[data-size='s'] {
+  width: 45%;
+}
+
+@media (max-width: 720px) {
+  .post .rich figure[data-size='m'],
+  .post .rich figure[data-size='s'] {
+    width: 100%;
+  }
+}
