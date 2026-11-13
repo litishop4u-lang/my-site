@@ -1,0 +1,341 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+import { slugify } from '../../../lib/slug';
+import { cleanDescription } from '../../../lib/rich';
+import { IMAGE_RE, MAX_IMAGES } from '../../../lib/content';
+
+export const prerender = false;
+
+const MAX_ROWS = 500;
+const MAX_BYTES = 2_000_000;
+
+const FIELD_NAMES: Record<string, string[]> = {
+  name: ['ten-san-pham', 'ten', 'name'],
+  sku: ['sku', 'ma-san-pham', 'ma'],
+  price: ['gia-ban', 'gia', 'price'],
+  oldPrice: ['gia-cu', 'gia-goc', 'old-price'],
+  category: ['danh-muc', 'category'],
+  brand: ['thuong-hieu', 'brand'],
+  description: ['mo-ta', 'description'],
+  images: ['anh', 'hinh-anh', 'images'],
+  active: ['hien-thi', 'active'],
+};
+
+function parseCsv(input: string): string[][] {
+  const text = input.replace(/^﻿/, '');
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
+  const counts = {
+    ';': firstLine.split(';').length,
+    ',': firstLine.split(',').length,
+    '\t': firstLine.split('\t').length,
+  };
+  const delim = (Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]) as string;
+
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === delim) {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell);
+      cell = '';
+      if (row.some((c) => c.trim() !== '')) rows.push(row);
+      row = [];
+    } else {
+      cell += ch;
+    }
+  }
+  row.push(cell);
+  if (row.some((c) => c.trim() !== '')) rows.push(row);
+  return rows;
+}
+
+function money(v: string): number {
+  const n = parseInt(v.replace(/\D/g, ''), 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isActive(v: string): number {
+  const k = slugify(v);
+  return ['khong', '0', 'an', 'no', 'false'].includes(k) ? 0 : 1;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function textToHtml(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  if (t.startsWith('<')) return t;
+  return t
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .join('');
+}
+
+const norm = (s: string) => s.trim().toLowerCase();
+
+type Result = { added: number; updated: number; skipped: string[]; newCats: number; newBrands: number };
+
+async function runImport(text: string): Promise<Result> {
+  const rows = parseCsv(text);
+  if (rows.length < 2) throw new Error('File chưa có dòng sản phẩm nào (dòng đầu là tiêu đề cột).');
+  if (rows.length - 1 > MAX_ROWS) throw new Error(`File có quá ${MAX_ROWS} sản phẩm. Hãy chia nhỏ file rồi nhập từng đợt.`);
+
+  const header = rows[0].map((h) => slugify(h));
+  const col: Record<string, number> = {};
+  for (const [field, names] of Object.entries(FIELD_NAMES)) {
+    col[field] = header.findIndex((h) => names.includes(h));
+  }
+  if (col.name < 0) throw new Error('Không thấy cột "Tên sản phẩm" ở dòng tiêu đề. Hãy dùng đúng file mẫu.');
+  const get = (r: string[], f: string) => (col[f] >= 0 ? (r[col[f]] ?? '').trim() : '');
+
+  const db = env.DB;
+  const [catRes, brandRes, prodRes] = await Promise.all([
+    db.prepare('SELECT id, name, slug FROM categories').all<{ id: number; name: string; slug: string }>(),
+    db.prepare('SELECT id, name, slug FROM brands').all<{ id: number; name: string; slug: string }>(),
+    db.prepare('SELECT id, sku, slug FROM products').all<{ id: number; sku: string | null; slug: string }>(),
+  ]);
+
+  const dataRows = rows.slice(1);
+
+  // 1. Tạo danh mục, thương hiệu còn thiếu
+  const mapOf = (list: { id: number; name: string; slug: string }[]) => {
+    const m = new Map<string, number>();
+    for (const x of list) {
+      m.set(norm(x.name), x.id);
+      m.set('slug:' + x.slug, x.id);
+    }
+    return m;
+  };
+  let catMap = mapOf(catRes.results);
+  let brandMap = mapOf(brandRes.results);
+  const missing = (field: string, map: Map<string, number>) => {
+    const out = new Map<string, string>();
+    for (const r of dataRows) {
+      const name = get(r, field);
+      if (!name) continue;
+      if (map.has(norm(name)) || map.has('slug:' + slugify(name))) continue;
+      out.set(norm(name), name);
+    }
+    return [...out.values()];
+  };
+  const newCats = missing('category', catMap);
+  const newBrands = missing('brand', brandMap);
+  const setup = [
+    ...newCats.map((n) =>
+      db
+        .prepare('INSERT OR IGNORE INTO categories (name, slug, sort_order, show_on_home) VALUES (?, ?, 100, 1)')
+        .bind(n, slugify(n) || 'danh-muc'),
+    ),
+    ...newBrands.map((n) =>
+      db.prepare('INSERT OR IGNORE INTO brands (name, slug) VALUES (?, ?)').bind(n, slugify(n) || 'thuong-hieu'),
+    ),
+  ];
+  if (setup.length > 0) {
+    await db.batch(setup);
+    const [c2, b2] = await Promise.all([
+      db.prepare('SELECT id, name, slug FROM categories').all<{ id: number; name: string; slug: string }>(),
+      db.prepare('SELECT id, name, slug FROM brands').all<{ id: number; name: string; slug: string }>(),
+    ]);
+    catMap = mapOf(c2.results);
+    brandMap = mapOf(b2.results);
+  }
+  const findId = (map: Map<string, number>, name: string): number | null =>
+    name ? (map.get(norm(name)) ?? map.get('slug:' + slugify(name)) ?? null) : null;
+
+  // 2. Sản phẩm
+  const skuToId = new Map<string, number>();
+  const slugs = new Set<string>();
+  for (const p of prodRes.results) {
+    slugs.add(p.slug);
+    if (p.sku) skuToId.set(norm(p.sku), p.id);
+  }
+  const seenSku = new Set<string>();
+  const statements: D1PreparedStatement[] = [];
+  const skipped: string[] = [];
+  let added = 0;
+  let updated = 0;
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const r = dataRows[i];
+    const line = i + 2;
+    const name = get(r, 'name');
+    if (!name) {
+      skipped.push(`Dòng ${line}: thiếu tên sản phẩm`);
+      continue;
+    }
+    const sku = get(r, 'sku');
+    const skuKey = norm(sku);
+    if (sku && seenSku.has(skuKey)) {
+      skipped.push(`Dòng ${line}: SKU "${sku}" bị trùng trong file`);
+      continue;
+    }
+    if (sku) seenSku.add(skuKey);
+
+    const price = money(get(r, 'price'));
+    const oldPrice = money(get(r, 'oldPrice'));
+    const categoryId = findId(catMap, get(r, 'category'));
+    const brandId = findId(brandMap, get(r, 'brand'));
+    const active = col.active >= 0 && get(r, 'active') !== '' ? isActive(get(r, 'active')) : 1;
+    const description = await cleanDescription(textToHtml(get(r, 'description')));
+    const images = get(r, 'images')
+      .split('|')
+      .map((s) => s.trim())
+      .filter((s) => IMAGE_RE.test(s))
+      .slice(0, MAX_IMAGES);
+
+    const existingId = sku ? skuToId.get(skuKey) : undefined;
+    if (existingId) {
+      statements.push(
+        db
+          .prepare(
+            `UPDATE products SET name = ?, price = ?, old_price = ?, category_id = COALESCE(?, category_id),
+               brand_id = COALESCE(?, brand_id), description = COALESCE(?, description), is_active = ?,
+               image = COALESCE(?, image), images = COALESCE(?, images), updated_at = datetime('now')
+             WHERE id = ?`,
+          )
+          .bind(
+            name,
+            price,
+            oldPrice,
+            categoryId,
+            brandId,
+            description || null,
+            active,
+            images[0] ?? null,
+            images.length > 0 ? JSON.stringify(images) : null,
+            existingId,
+          ),
+      );
+      updated++;
+    } else {
+      const base = slugify(name) || 'san-pham';
+      let slug = base;
+      let n = 2;
+      while (slugs.has(slug)) slug = `${base}-${n++}`;
+      slugs.add(slug);
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO products (name, slug, sku, category_id, brand_id, price, old_price, image, images, specs, description, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+          )
+          .bind(
+            name,
+            slug,
+            sku || null,
+            categoryId,
+            brandId,
+            price,
+            oldPrice,
+            images[0] ?? null,
+            images.length > 0 ? JSON.stringify(images) : null,
+            description || null,
+            active,
+          ),
+      );
+      added++;
+    }
+  }
+
+  for (let i = 0; i < statements.length; i += 50) {
+    await db.batch(statements.slice(i, i + 50));
+  }
+  return { added, updated, skipped, newCats: newCats.length, newBrands: newBrands.length };
+}
+
+let result: Result | null = null;
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const form = await Astro.request.formData();
+    const file = form.get('file');
+    if (!(file instanceof File) || file.size === 0) {
+      error = 'Vui lòng chọn file CSV.';
+    } else if (file.size > MAX_BYTES) {
+      error = 'File quá lớn (tối đa 2 MB).';
+    } else {
+      const text = await file.text();
+      if (text.includes('�')) {
+        error = 'File bị lỗi font chữ. Hãy lưu lại bằng định dạng "CSV UTF-8" rồi tải lên lại.';
+      } else {
+        result = await runImport(text);
+      }
+    }
+  } catch (e) {
+    error = e instanceof Error ? e.message : 'Không nhập được file.';
+  }
+}
+
+const sample = [
+  'Tên sản phẩm,SKU,Giá bán,Giá cũ,Danh mục,Thương hiệu,Mô tả,Hiển thị',
+  'Xe đạp điện Honda Cub E,HD-CUBE,18500000,19900000,Xe đạp điện,Honda,"Xe đạp điện gấp gọn, chạy êm.\nBảo hành 12 tháng.",Có',
+  'Xe đạp điện Lemmo One,LM-ONE,14200000,,Xe đạp điện,Lemmo,Xe đẹp giá tốt,Có',
+  'Bình ắc quy 48V,BQ-48V,1400000,,Phụ kiện,,Bình ắc quy chính hãng,Có',
+].join('\r\n');
+const templateHref = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + sample);
+---
+
+<AdminLayout title="Nhập sản phẩm hàng loạt">
+  <h1>Nhập sản phẩm hàng loạt</h1>
+
+  {error && <div class="adm-error">{error}</div>}
+
+  {result && (
+    <div class="adm-flash">
+      Đã thêm <strong>{result.added}</strong> sản phẩm mới, cập nhật <strong>{result.updated}</strong> sản phẩm
+      (trùng SKU). Tạo mới {result.newCats} danh mục và {result.newBrands} thương hiệu.
+      {result.skipped.length > 0 && (
+        <>
+          <br />Bỏ qua {result.skipped.length} dòng:
+          <ul>
+            {result.skipped.slice(0, 30).map((s) => <li>{s}</li>)}
+          </ul>
+        </>
+      )}
+      <br /><a href="/admin/san-pham/">Xem danh sách sản phẩm</a>
+    </div>
+  )}
+
+  <form class="adm-form" method="post" enctype="multipart/form-data">
+    <p><strong>Bước 1.</strong> Tải file mẫu, mở bằng Excel, điền sản phẩm của bạn (mỗi dòng một sản phẩm).</p>
+    <p>
+      <a class="adm-btn adm-btn-link" href={templateHref} download="mau-san-pham.csv">Tải file mẫu (CSV)</a>
+    </p>
+    <p><strong>Bước 2.</strong> Lưu file bằng <em>Save As → CSV UTF-8 (Comma delimited)</em>.</p>
+    <p><strong>Bước 3.</strong> Chọn file đó và bấm Nhập sản phẩm.</p>
+    <input type="file" name="file" accept=".csv,text/csv" required />
+    <div class="adm-size">
+      <strong>Lưu ý:</strong> cột bắt buộc chỉ có <em>Tên sản phẩm</em>. Danh mục và thương hiệu chưa có sẽ được
+      tự tạo. Dòng có <em>SKU</em> trùng sản phẩm đã có sẽ <strong>cập nhật</strong> tên, giá, mô tả thay vì tạo mới.
+      Cột <em>Hiển thị</em> ghi "Không" nếu muốn ẩn sản phẩm. Tối đa 500 sản phẩm mỗi lần. Ảnh và thông số kỹ thuật
+      thêm sau trong từng sản phẩm (hoặc thêm cột <em>Ảnh</em> gồm các link dạng <code>/media/?k=...</code> của ảnh
+      đã có trong thư viện, ngăn cách bằng dấu <code>|</code>).
+    </div>
+    <button class="adm-btn" type="submit">Nhập sản phẩm</button>
+  </form>
+</AdminLayout>
