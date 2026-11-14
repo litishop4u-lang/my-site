@@ -16,11 +16,11 @@ const sections = categories
   .filter((c) => c.show_on_home === 1 && !c.parent_id)
   .map((c) => {
     const ids = new Set<number>([c.id, ...categories.filter((x) => x.parent_id === c.id).map((x) => x.id)]);
+    const all = products.filter((p) => p.category_id !== null && ids.has(p.category_id));
     return {
       category: c,
-      products: products
-        .filter((p) => p.category_id !== null && ids.has(p.category_id))
-        .slice(0, 10),
+      total: all.length,
+      products: all.slice(0, 10),
     };
   })
   .filter((s) => s.products.length > 0);
@@ -105,9 +105,22 @@ const banners =
             <a class="ribbon" href={`/danh-muc/${section.category.slug}/`}>{section.category.name}</a>
           </h2>
         </div>
-        <div class="grid-4">
-          {section.products.map((p) => <ProductCard product={p} />)}
+          <div class="prod-carousel" data-carousel>
+          <button type="button" class="pc-nav prev" data-pc-prev aria-label="Sản phẩm trước" hidden>‹</button>
+          <div class="pc-track" data-pc-track>
+            {section.products.map((p) => (
+              <div class="pc-item"><ProductCard product={p} /></div>
+            ))}
+          </div>
+          <button type="button" class="pc-nav next" data-pc-next aria-label="Sản phẩm sau" hidden>›</button>
         </div>
+        {section.total > 10 && (
+          <div class="pc-more">
+            <a class="btn btn-navy" href={`/danh-muc/${section.category.slug}/`}>
+              Xem tất cả {section.total} sản phẩm
+            </a>
+          </div>
+        )}
       </div>
     </section>
   ))}
@@ -139,4 +152,5 @@ const banners =
   )}
 
   <script is:inline defer src="/banner.js?v=2"></script>
+  <script is:inline defer src="/carousel.js?v=1"></script>
 </BaseLayout>

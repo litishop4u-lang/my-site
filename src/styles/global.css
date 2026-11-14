@@ -3927,3 +3927,100 @@ a.ribbon:focus-visible {
     display: none;
   }
 }
+
+
+/* ===== Carousel sản phẩm trang chủ (5 sản phẩm / hàng, tự chạy) ===== */
+.prod-carousel {
+  --pc-cols: 5;
+  --pc-gap: 1.5rem;
+  position: relative;
+}
+
+.pc-track {
+  display: flex;
+  gap: var(--pc-gap);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 0.25rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+  padding: 0.9rem 0.25rem 1.2rem;
+  margin: -0.9rem -0.25rem -1.2rem;
+}
+
+.pc-track::-webkit-scrollbar {
+  display: none;
+}
+
+.pc-item {
+  flex: 0 0 calc((100% - (var(--pc-cols) - 1) * var(--pc-gap)) / var(--pc-cols));
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.pc-nav {
+  position: absolute;
+  top: 34%;
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  padding: 0 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  color: #333;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pc-nav:hover {
+  background: #fff;
+}
+
+.pc-nav.prev {
+  left: 0.5rem;
+}
+
+.pc-nav.next {
+  right: 0.5rem;
+}
+
+.pc-nav[hidden] {
+  display: none;
+}
+
+.pc-more {
+  margin-top: 1.4rem;
+  text-align: center;
+}
+
+@media (max-width: 1179px) {
+  .prod-carousel {
+    --pc-cols: 4;
+  }
+}
+
+@media (max-width: 899px) {
+  .prod-carousel {
+    --pc-cols: 3;
+  }
+}
+
+@media (max-width: 639px) {
+  .prod-carousel {
+    --pc-cols: 2;
+    --pc-gap: 1rem;
+  }
+
+  .pc-nav {
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+  }
+}
