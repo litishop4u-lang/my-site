@@ -56,16 +56,18 @@ export function applyPolicySchema(schema: Record<string, unknown> | undefined, s
   } else if (s.pol_return === 'finite') {
     const days = num(s.pol_return_days);
     if (days !== null && days > 0) {
-      offers.hasMerchantReturnPolicy = {
+      const policy: Record<string, unknown> = {
         '@type': 'MerchantReturnPolicy',
         applicableCountry: 'VN',
         returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
         merchantReturnDays: Math.round(days),
-        returnFees:
-          s.pol_return_fee === 'customer'
-            ? 'https://schema.org/ReturnShippingFees'
-            : 'https://schema.org/FreeReturn',
       };
+      if (s.pol_return_fee === 'free') {
+        policy.returnFees = 'https://schema.org/FreeReturn';
+      } else if (s.pol_return_fee === 'customer') {
+        policy.returnFees = 'https://schema.org/ReturnShippingFees';
+      }
+      offers.hasMerchantReturnPolicy = policy;
     }
   }
 }

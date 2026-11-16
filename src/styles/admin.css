@@ -1801,3 +1801,21 @@
   display: flex;
   gap: 1rem;
 }
+
+
+.pol-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+  resize: vertical;
+}
+
+.pol-hint {
+  margin: -0.5rem 0 0.9rem;
+  color: #5f6368;
+  font-size: 0.9rem;
+}

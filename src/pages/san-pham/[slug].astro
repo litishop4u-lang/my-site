@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductReviews from '../../components/ProductReviews.astro';
+import PolicyBox from '../../components/PolicyBox.astro';
 import { getReviewData, applyReviewSchema } from '../../lib/reviews';
 import { applyPolicySchema } from '../../lib/policy';
 import StoreInfo from '../../components/StoreInfo.astro';
@@ -193,6 +194,7 @@ applyPolicySchema(productSchema, settings);
                 <div class="rich rich-html" set:html={descriptionHtml}></div>
               </section>
             )}
+            <PolicyBox settings={settings} />
             <ProductReviews product={product} data={reviewData} />
           </div>
 

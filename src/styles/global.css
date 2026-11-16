@@ -4178,3 +4178,40 @@ a.ribbon:focus-visible {
   outline: 2px solid var(--accent-btn);
   border-radius: 4px;
 }
+
+
+/* ===== Khung giao hàng & đổi trả ===== */
+.policy-box {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.policy-box h2 {
+  margin: 0 0 1rem;
+}
+
+.policy-grid {
+  display: grid;
+  gap: 1rem 1.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.policy-item h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.policy-item p {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 899px) {
+  .policy-grid {
+    grid-template-columns: 1fr;
+  }
+}

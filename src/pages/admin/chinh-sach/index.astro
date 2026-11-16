@@ -13,6 +13,16 @@ const NUMBER_FIELDS = [
   'pol_return_days',
 ] as const;
 
+const TEXT_FIELDS = ['pol_ship_text', 'pol_time_text', 'pol_return_text'] as const;
+
+const DEFAULT_TEXT: Record<string, string> = {
+  pol_ship_text:
+    'Miễn phí giao hàng nội thành trong phạm vi 10km.\nĐối với các đơn hàng đi tỉnh sẽ tính phí giao hàng, tùy thuộc vào từng địa điểm.',
+  pol_time_text: 'Hàng có sẵn: 1-2 ngày.\nHàng order: từ 30-40 ngày.',
+  pol_return_text:
+    'Đổi trả trong vòng 03 ngày nếu sản phẩm có lỗi nặng về hệ thống thuộc trách nhiệm của nhà sản xuất.\nKhông chấp nhận đổi trả nếu sản phẩm không ưng theo nhu cầu cá nhân của khách hàng.',
+};
+
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const entries: [string, string][] = [];
@@ -22,10 +32,14 @@ if (Astro.request.method === 'POST') {
     entries.push([key, raw]);
   }
 
+  for (const key of TEXT_FIELDS) {
+    entries.push([key, String(form.get(key) ?? '').trim().slice(0, 2000)]);
+  }
+
   const ret = String(form.get('pol_return') ?? '');
   entries.push(['pol_return', ret === 'finite' || ret === 'none' ? ret : '']);
   const retFee = String(form.get('pol_return_fee') ?? '');
-  entries.push(['pol_return_fee', retFee === 'customer' ? 'customer' : 'free']);
+  entries.push(['pol_return_fee', retFee === 'free' || retFee === 'customer' ? retFee : '']);
 
   await env.DB.batch(
     entries.map(([key, value]) =>
@@ -40,6 +54,7 @@ if (Astro.request.method === 'POST') {
 
 const s = await getSettings();
 const saved = Astro.url.searchParams.get('saved');
+const textValue = (key: string) => (s[key] !== undefined ? s[key] : DEFAULT_TEXT[key]);
 ---
 
 <AdminLayout title="Giao hàng & đổi trả">
@@ -47,16 +62,33 @@ const saved = Astro.url.searchParams.get('saved');
 
   {saved && <div class="adm-flash">Đã lưu.</div>}
 
-  <p class="adm-note" style="margin-top:0">
-    Thông tin này được gửi cho Google cùng với mỗi sản phẩm. Hãy nhập đúng với chính sách thật của cửa hàng.
-    Mục nào để trống thì sẽ không được gửi đi.
-  </p>
-
   <form method="post" class="pol-form">
-    <h2>Giao hàng</h2>
+    <h2>Nội dung hiển thị trên trang sản phẩm</h2>
+    <p class="pol-hint">Khách hàng sẽ thấy các nội dung này trong khung "Giao hàng &amp; đổi trả". Mỗi dòng là một ý.</p>
 
     <div class="pol-field">
-      <label for="pol_ship_fee">Phí giao hàng (VNĐ). Nhập 0 nếu miễn phí</label>
+      <label for="pol_ship_text">Phí giao hàng</label>
+      <textarea id="pol_ship_text" name="pol_ship_text" rows="3">{textValue('pol_ship_text')}</textarea>
+    </div>
+
+    <div class="pol-field">
+      <label for="pol_time_text">Thời gian giao hàng</label>
+      <textarea id="pol_time_text" name="pol_time_text" rows="3">{textValue('pol_time_text')}</textarea>
+    </div>
+
+    <div class="pol-field">
+      <label for="pol_return_text">Chính sách đổi trả</label>
+      <textarea id="pol_return_text" name="pol_return_text" rows="4">{textValue('pol_return_text')}</textarea>
+    </div>
+
+    <h2>Dữ liệu gửi cho Google (không bắt buộc)</h2>
+    <p class="pol-hint">
+      Mục nào để trống thì không gửi đi. Chỉ nhập phí giao hàng khi mọi đơn đều cùng một mức phí.
+      Nếu phí thay đổi theo địa điểm như hiện tại, hãy để trống ô phí giao hàng.
+    </p>
+
+    <div class="pol-field">
+      <label for="pol_ship_fee">Phí giao hàng cố định (VNĐ). Nhập 0 nếu miễn phí mọi đơn</label>
       <input id="pol_ship_fee" name="pol_ship_fee" type="text" inputmode="numeric" value={s.pol_ship_fee ?? ''} />
     </div>
 
@@ -67,7 +99,7 @@ const saved = Astro.url.searchParams.get('saved');
 
     <div class="pol-row">
       <div class="pol-field">
-        <label for="pol_ship_min">Thời gian giao: từ (ngày)</label>
+        <label for="pol_ship_min">Thời gian giao hàng có sẵn: từ (ngày)</label>
         <input id="pol_ship_min" name="pol_ship_min" type="text" inputmode="numeric" value={s.pol_ship_min ?? ''} />
       </div>
       <div class="pol-field">
@@ -75,8 +107,6 @@ const saved = Astro.url.searchParams.get('saved');
         <input id="pol_ship_max" name="pol_ship_max" type="text" inputmode="numeric" value={s.pol_ship_max ?? ''} />
       </div>
     </div>
-
-    <h2>Đổi trả</h2>
 
     <div class="pol-field">
       <label for="pol_return">Chính sách đổi trả</label>
@@ -95,7 +125,8 @@ const saved = Astro.url.searchParams.get('saved');
       <div class="pol-field">
         <label for="pol_return_fee">Phí gửi trả hàng</label>
         <select id="pol_return_fee" name="pol_return_fee">
-          <option value="free" selected={s.pol_return_fee !== 'customer'}>Cửa hàng chịu</option>
+          <option value="" selected={!s.pol_return_fee}>Không nêu</option>
+          <option value="free" selected={s.pol_return_fee === 'free'}>Cửa hàng chịu</option>
           <option value="customer" selected={s.pol_return_fee === 'customer'}>Khách chịu</option>
         </select>
       </div>

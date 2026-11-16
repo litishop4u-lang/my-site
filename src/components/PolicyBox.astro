@@ -1,0 +1,27 @@
+---
+interface Props {
+  settings: Record<string, string | undefined>;
+}
+
+const { settings: s } = Astro.props;
+
+const blocks = [
+  { title: 'Phí giao hàng', text: s.pol_ship_text },
+  { title: 'Thời gian giao hàng', text: s.pol_time_text },
+  { title: 'Chính sách đổi trả', text: s.pol_return_text },
+].filter((b) => b.text && b.text.trim());
+---
+
+{blocks.length > 0 && (
+  <section class="policy-box" id="giao-hang-doi-tra">
+    <h2>Giao hàng &amp; đổi trả</h2>
+    <div class="policy-grid">
+      {blocks.map((b) => (
+        <div class="policy-item">
+          <h3>{b.title}</h3>
+          <p>{b.text}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
