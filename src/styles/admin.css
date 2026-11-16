@@ -1753,3 +1753,51 @@
   align-items: flex-start;
   gap: 0.5rem;
 }
+
+
+/* ===== Giao hàng & đổi trả ===== */
+.pol-form {
+  max-width: 520px;
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.pol-form h2 {
+  margin: 0 0 0.9rem;
+  font-size: 1.15rem;
+  color: #2d2a5a;
+}
+
+.pol-form h2:not(:first-child) {
+  margin-top: 1.5rem;
+}
+
+.pol-field {
+  flex: 1;
+  margin-bottom: 0.9rem;
+}
+
+.pol-field label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.pol-field input[type='text'],
+.pol-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+
+.pol-row {
+  display: flex;
+  gap: 1rem;
+}

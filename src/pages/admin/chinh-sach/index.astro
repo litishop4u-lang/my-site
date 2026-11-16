@@ -1,0 +1,106 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+import { getSettings } from '../../../lib/db';
+
+export const prerender = false;
+
+const NUMBER_FIELDS = [
+  'pol_ship_fee',
+  'pol_ship_min',
+  'pol_ship_max',
+  'pol_handling_days',
+  'pol_return_days',
+] as const;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const entries: [string, string][] = [];
+
+  for (const key of NUMBER_FIELDS) {
+    const raw = String(form.get(key) ?? '').replace(/[^\d]/g, '').slice(0, 9);
+    entries.push([key, raw]);
+  }
+
+  const ret = String(form.get('pol_return') ?? '');
+  entries.push(['pol_return', ret === 'finite' || ret === 'none' ? ret : '']);
+  const retFee = String(form.get('pol_return_fee') ?? '');
+  entries.push(['pol_return_fee', retFee === 'customer' ? 'customer' : 'free']);
+
+  await env.DB.batch(
+    entries.map(([key, value]) =>
+      env.DB.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      ).bind(key, value),
+    ),
+  );
+
+  return Astro.redirect('/admin/chinh-sach/?saved=1');
+}
+
+const s = await getSettings();
+const saved = Astro.url.searchParams.get('saved');
+---
+
+<AdminLayout title="Giao hàng & đổi trả">
+  <h1>Giao hàng &amp; đổi trả</h1>
+
+  {saved && <div class="adm-flash">Đã lưu.</div>}
+
+  <p class="adm-note" style="margin-top:0">
+    Thông tin này được gửi cho Google cùng với mỗi sản phẩm. Hãy nhập đúng với chính sách thật của cửa hàng.
+    Mục nào để trống thì sẽ không được gửi đi.
+  </p>
+
+  <form method="post" class="pol-form">
+    <h2>Giao hàng</h2>
+
+    <div class="pol-field">
+      <label for="pol_ship_fee">Phí giao hàng (VNĐ). Nhập 0 nếu miễn phí</label>
+      <input id="pol_ship_fee" name="pol_ship_fee" type="text" inputmode="numeric" value={s.pol_ship_fee ?? ''} />
+    </div>
+
+    <div class="pol-field">
+      <label for="pol_handling_days">Số ngày chuẩn bị hàng (không bắt buộc)</label>
+      <input id="pol_handling_days" name="pol_handling_days" type="text" inputmode="numeric" value={s.pol_handling_days ?? ''} />
+    </div>
+
+    <div class="pol-row">
+      <div class="pol-field">
+        <label for="pol_ship_min">Thời gian giao: từ (ngày)</label>
+        <input id="pol_ship_min" name="pol_ship_min" type="text" inputmode="numeric" value={s.pol_ship_min ?? ''} />
+      </div>
+      <div class="pol-field">
+        <label for="pol_ship_max">đến (ngày)</label>
+        <input id="pol_ship_max" name="pol_ship_max" type="text" inputmode="numeric" value={s.pol_ship_max ?? ''} />
+      </div>
+    </div>
+
+    <h2>Đổi trả</h2>
+
+    <div class="pol-field">
+      <label for="pol_return">Chính sách đổi trả</label>
+      <select id="pol_return" name="pol_return">
+        <option value="" selected={!s.pol_return}>Chưa khai báo</option>
+        <option value="finite" selected={s.pol_return === 'finite'}>Có đổi trả trong một số ngày</option>
+        <option value="none" selected={s.pol_return === 'none'}>Không đổi trả</option>
+      </select>
+    </div>
+
+    <div class="pol-row">
+      <div class="pol-field">
+        <label for="pol_return_days">Số ngày được đổi trả</label>
+        <input id="pol_return_days" name="pol_return_days" type="text" inputmode="numeric" value={s.pol_return_days ?? ''} />
+      </div>
+      <div class="pol-field">
+        <label for="pol_return_fee">Phí gửi trả hàng</label>
+        <select id="pol_return_fee" name="pol_return_fee">
+          <option value="free" selected={s.pol_return_fee !== 'customer'}>Cửa hàng chịu</option>
+          <option value="customer" selected={s.pol_return_fee === 'customer'}>Khách chịu</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="adm-btn" type="submit">Lưu</button>
+  </form>
+</AdminLayout>
