@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { isValidSession, SESSION_COOKIE } from './lib/auth';
+import { getSessionUser, SESSION_COOKIE } from './lib/auth';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
@@ -8,10 +8,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     path.startsWith('/admin/') ||
     path.startsWith('/api/admin/');
   const isLogin = path === '/admin/login' || path === '/admin/login/';
+  const isOwnerOnly = path === '/admin/nhan-vien' || path.startsWith('/admin/nhan-vien/');
 
   if (isAdminArea && !isLogin) {
     const token = context.cookies.get(SESSION_COOKIE)?.value;
-    if (!(await isValidSession(token))) {
+    const user = await getSessionUser(token);
+    if (!user) {
       if (path.startsWith('/api/')) {
         return new Response(JSON.stringify({ error: 'Chưa đăng nhập' }), {
           status: 401,
@@ -19,6 +21,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
         });
       }
       return context.redirect('/admin/login/');
+    }
+
+    (context.locals as any).adminUser = {
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      role: user.role,
+    };
+
+    if (isOwnerOnly && user.role !== 'owner') {
+      return context.redirect('/admin/');
     }
   }
 

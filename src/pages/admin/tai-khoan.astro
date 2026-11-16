@@ -1,0 +1,82 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  createSession,
+  findUserById,
+  setPassword,
+  verifyPassword,
+  MIN_PASSWORD,
+  SESSION_COOKIE,
+  SESSION_SECONDS,
+} from '../../lib/auth';
+
+export const prerender = false;
+
+const me = (Astro.locals as any).adminUser as {
+  id: number;
+  username: string;
+  display_name: string;
+  role: string;
+};
+
+let error = '';
+let done = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const current = String(form.get('current') ?? '');
+  const next = String(form.get('next') ?? '');
+  const again = String(form.get('again') ?? '');
+
+  const user = await findUserById(me.id);
+  if (!user) {
+    return Astro.redirect('/admin/login/');
+  }
+
+  if (!(await verifyPassword(user, current))) {
+    error = 'Mật khẩu hiện tại không đúng.';
+  } else if (next.length < MIN_PASSWORD) {
+    error = `Mật khẩu mới phải có ít nhất ${MIN_PASSWORD} ký tự.`;
+  } else if (next !== again) {
+    error = 'Hai lần nhập mật khẩu mới không giống nhau.';
+  } else {
+    await setPassword(user.id, next);
+    const fresh = await findUserById(user.id);
+    if (fresh) {
+      Astro.cookies.set(SESSION_COOKIE, await createSession(fresh), {
+        path: '/',
+        httpOnly: true,
+        secure: Astro.url.protocol === 'https:',
+        sameSite: 'strict',
+        maxAge: SESSION_SECONDS,
+      });
+    }
+    done = true;
+  }
+}
+---
+
+<AdminLayout title="Mật khẩu của tôi">
+  <h1>Mật khẩu của tôi</h1>
+
+  <p class="adm-note" style="margin-top:0">
+    Đang đăng nhập: <strong>{me.display_name || me.username}</strong> ({me.username}) –
+    {me.role === 'owner' ? 'Chủ (quản lý nhân viên)' : 'Nhân viên'}
+  </p>
+
+  {done && <div class="adm-flash">Đã đổi mật khẩu.</div>}
+  {error && <div class="adm-error">{error}</div>}
+
+  <form method="post" class="usr-form">
+    <label for="current">Mật khẩu hiện tại</label>
+    <input id="current" name="current" type="password" autocomplete="current-password" required />
+
+    <label for="next">Mật khẩu mới (ít nhất {MIN_PASSWORD} ký tự)</label>
+    <input id="next" name="next" type="password" autocomplete="new-password" minlength={MIN_PASSWORD} required />
+
+    <label for="again">Nhập lại mật khẩu mới</label>
+    <input id="again" name="again" type="password" autocomplete="new-password" minlength={MIN_PASSWORD} required />
+
+    <button class="adm-btn" type="submit">Đổi mật khẩu</button>
+  </form>
+</AdminLayout>

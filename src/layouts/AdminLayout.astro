@@ -8,6 +8,10 @@ interface Props {
 
 const { title, showNav = true } = Astro.props;
 const path = Astro.url.pathname;
+const adminUser = (Astro.locals as any).adminUser as
+  | { id: number; username: string; display_name: string; role: string }
+  | undefined;
+const isOwner = adminUser?.role === 'owner';
 
 type Tab = { label: string; href: string };
 type Group = {
@@ -56,6 +60,15 @@ const groups: Group[] = [
     tabs: [
       { label: 'Cài đặt chung', href: '/admin/cai-dat/' },
       { label: 'Cửa hàng', href: '/admin/cua-hang/' },
+    ],
+  },
+  {
+    label: 'Tài khoản',
+    href: '/admin/tai-khoan/',
+    prefixes: ['/admin/tai-khoan/', '/admin/nhan-vien/'],
+    tabs: [
+      { label: 'Mật khẩu của tôi', href: '/admin/tai-khoan/' },
+      ...(isOwner ? [{ label: 'Nhân viên', href: '/admin/nhan-vien/' }] : []),
     ],
   },
 ];
@@ -230,6 +243,7 @@ const tabs = current?.tabs ?? [];
             ))}
             <a href="/" target="_blank" rel="noopener">Xem website</a>
           </nav>
+          {adminUser && <span class="adm-who">{adminUser.display_name || adminUser.username}</span>}
           <form method="post" action="/admin/logout/">
             <button class="adm-btn adm-btn-light" type="submit">Đăng xuất</button>
           </form>

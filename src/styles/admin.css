@@ -1546,3 +1546,130 @@
   font: inherit;
   max-width: 220px;
 }
+
+
+/* ===== Đăng nhập tên + mật khẩu, quản lý nhân viên ===== */
+.adm-login input[type='text'] {
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.adm-login input[type='password'] {
+  box-sizing: border-box;
+}
+
+.adm-who {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.adm-add select {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+
+.adm-add input[type='password'] {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.usr-form {
+  max-width: 380px;
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.usr-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.usr-form input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.usr-list {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.usr-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e1e3ec;
+}
+
+.usr-row:last-child {
+  border-bottom: 0;
+}
+
+.usr-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 180px;
+}
+
+.usr-sub {
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.usr-badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.usr-badge.ok {
+  background: #e3f4e6;
+  color: #1c6b2f;
+}
+
+.usr-badge.off {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.usr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.usr-actions input[type='text'] {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #c9ccd6;
+  border-radius: 4px;
+  font: inherit;
+  width: 160px;
+}

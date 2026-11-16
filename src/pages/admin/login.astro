@@ -1,9 +1,9 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import {
-  checkPassword,
   createSession,
-  isValidSession,
+  getSessionUser,
+  verifyLogin,
   SESSION_COOKIE,
   SESSION_SECONDS,
 } from '../../lib/auth';
@@ -11,17 +11,20 @@ import {
 export const prerender = false;
 
 let error = '';
+let usernameValue = '';
 
-if (await isValidSession(Astro.cookies.get(SESSION_COOKIE)?.value)) {
+if (await getSessionUser(Astro.cookies.get(SESSION_COOKIE)?.value)) {
   return Astro.redirect('/admin/');
 }
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
+  usernameValue = String(form.get('username') ?? '').trim();
   const password = String(form.get('password') ?? '');
 
-  if (await checkPassword(password)) {
-    Astro.cookies.set(SESSION_COOKIE, await createSession(), {
+  const user = await verifyLogin(usernameValue, password);
+  if (user) {
+    Astro.cookies.set(SESSION_COOKIE, await createSession(user), {
       path: '/',
       httpOnly: true,
       secure: Astro.url.protocol === 'https:',
@@ -32,7 +35,7 @@ if (Astro.request.method === 'POST') {
   }
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  error = 'Mật khẩu không đúng.';
+  error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
 }
 ---
 
@@ -41,8 +44,19 @@ if (Astro.request.method === 'POST') {
     <h1>Đăng nhập quản trị</h1>
     {error && <div class="adm-error">{error}</div>}
     <form method="post">
+      <label for="username">Tên đăng nhập</label>
+      <input
+        id="username"
+        name="username"
+        type="text"
+        value={usernameValue}
+        autocomplete="username"
+        autocapitalize="none"
+        required
+        autofocus
+      />
       <label for="password">Mật khẩu</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus />
+      <input id="password" name="password" type="password" autocomplete="current-password" required />
       <button class="adm-btn" type="submit">Đăng nhập</button>
     </form>
   </div>

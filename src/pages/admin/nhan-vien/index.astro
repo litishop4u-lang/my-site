@@ -1,0 +1,150 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+import {
+  createUser,
+  findUserByUsername,
+  isValidUsername,
+  normalizeUsername,
+  setPassword,
+  MIN_PASSWORD,
+} from '../../../lib/auth';
+
+export const prerender = false;
+
+const me = (Astro.locals as any).adminUser as {
+  id: number;
+  username: string;
+  display_name: string;
+  role: string;
+};
+
+if (!me || me.role !== 'owner') {
+  return Astro.redirect('/admin/');
+}
+
+type Row = {
+  id: number;
+  username: string;
+  display_name: string;
+  role: string;
+  active: number;
+  created_at: string;
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  const id = Number(form.get('id'));
+
+  if (action === 'add') {
+    const username = normalizeUsername(String(form.get('username') ?? ''));
+    const displayName = String(form.get('display_name') ?? '').trim();
+    const password = String(form.get('password') ?? '');
+    const role = String(form.get('role') ?? 'staff') === 'owner' ? 'owner' : 'staff';
+
+    if (!isValidUsername(username)) return Astro.redirect('/admin/nhan-vien/?msg=baduser');
+    if (password.length < MIN_PASSWORD) return Astro.redirect('/admin/nhan-vien/?msg=shortpw');
+    if (await findUserByUsername(username)) return Astro.redirect('/admin/nhan-vien/?msg=exists');
+
+    await createUser(username, displayName || username, password, role);
+    return Astro.redirect('/admin/nhan-vien/?msg=added');
+  }
+
+  if (Number.isInteger(id) && id > 0) {
+    if (action === 'reset') {
+      const password = String(form.get('password') ?? '');
+      if (password.length < MIN_PASSWORD) return Astro.redirect('/admin/nhan-vien/?msg=shortpw');
+      await setPassword(id, password);
+      return Astro.redirect('/admin/nhan-vien/?msg=reset');
+    }
+    if (action === 'toggle' && id !== me.id) {
+      await env.DB.prepare('UPDATE admin_users SET active = 1 - active WHERE id = ?').bind(id).run();
+      return Astro.redirect('/admin/nhan-vien/?msg=saved');
+    }
+    if (action === 'delete' && id !== me.id) {
+      await env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(id).run();
+      return Astro.redirect('/admin/nhan-vien/?msg=saved');
+    }
+  }
+
+  return Astro.redirect('/admin/nhan-vien/');
+}
+
+const msg = Astro.url.searchParams.get('msg');
+
+const { results } = await env.DB.prepare(
+  'SELECT id, username, display_name, role, active, created_at FROM admin_users ORDER BY id',
+).all<Row>();
+---
+
+<AdminLayout title="Nhân viên">
+  <h1>Nhân viên quản trị</h1>
+
+  {msg === 'added' && <div class="adm-flash">Đã thêm tài khoản.</div>}
+  {msg === 'saved' && <div class="adm-flash">Đã lưu.</div>}
+  {msg === 'reset' && <div class="adm-flash">Đã đổi mật khẩu cho tài khoản.</div>}
+  {msg === 'baduser' && (
+    <div class="adm-error">Tên đăng nhập gồm 3–30 ký tự: chữ không dấu, số, dấu chấm, gạch ngang hoặc gạch dưới.</div>
+  )}
+  {msg === 'shortpw' && <div class="adm-error">Mật khẩu phải có ít nhất {MIN_PASSWORD} ký tự.</div>}
+  {msg === 'exists' && <div class="adm-error">Tên đăng nhập này đã có người dùng.</div>}
+
+  <form method="post" class="adm-add">
+    <input type="hidden" name="action" value="add" />
+    <div>
+      <label for="new-username">Tên đăng nhập</label>
+      <input id="new-username" name="username" type="text" autocapitalize="none" autocomplete="off" required />
+    </div>
+    <div>
+      <label for="new-display">Tên hiển thị</label>
+      <input id="new-display" name="display_name" type="text" autocomplete="off" />
+    </div>
+    <div>
+      <label for="new-password">Mật khẩu (ít nhất {MIN_PASSWORD} ký tự)</label>
+      <input id="new-password" name="password" type="text" autocomplete="off" required />
+    </div>
+    <div>
+      <label for="new-role">Quyền</label>
+      <select id="new-role" name="role">
+        <option value="staff">Nhân viên</option>
+        <option value="owner">Chủ (được quản lý nhân viên)</option>
+      </select>
+    </div>
+    <button class="adm-btn" type="submit">+ Thêm tài khoản</button>
+  </form>
+
+  <div class="usr-list">
+    {results.map((u) => (
+      <form method="post" class="usr-row">
+        <input type="hidden" name="id" value={u.id} />
+        <div class="usr-info">
+          <strong>{u.display_name || u.username}</strong>
+          <span class="usr-sub">
+            {u.username} · {u.role === 'owner' ? 'Chủ' : 'Nhân viên'}
+            {u.id === me.id && ' · (bạn)'}
+          </span>
+          {u.active ? <span class="usr-badge ok">Đang hoạt động</span> : <span class="usr-badge off">Đã khóa</span>}
+        </div>
+        <div class="usr-actions">
+          <input name="password" type="text" placeholder="Mật khẩu mới" autocomplete="off" />
+          <button class="adm-icon-btn" type="submit" name="action" value="reset">Đổi mật khẩu</button>
+          {u.id !== me.id && (
+            <>
+              <button class="adm-icon-btn" type="submit" name="action" value="toggle">
+                {u.active ? 'Khóa' : 'Mở khóa'}
+              </button>
+              <button
+                class="adm-icon-btn danger"
+                type="submit"
+                name="action"
+                value="delete"
+                onclick="return confirm('Xóa tài khoản này?')"
+              >Xóa</button>
+            </>
+          )}
+        </div>
+      </form>
+    ))}
+  </div>
+</AdminLayout>
