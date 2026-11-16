@@ -4024,3 +4024,157 @@ a.ribbon:focus-visible {
     font-size: 1.5rem;
   }
 }
+
+
+/* ===== Đánh giá sản phẩm ===== */
+.reviews {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.reviews h2 {
+  margin: 0 0 1rem;
+}
+
+.rv-flash {
+  background: #e3f4e6;
+  color: #1c6b2f;
+  padding: 0.65rem 0.9rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.rv-flash.err {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.rv-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rv-avg {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rv-stars {
+  color: #f5a623;
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+}
+
+.rv-stars.sm {
+  font-size: 1rem;
+}
+
+.rv-count,
+.rv-date,
+.rv-note,
+.rv-empty {
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.rv-list {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.rv-item {
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.rv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.8rem;
+}
+
+.rv-text {
+  margin: 0.4rem 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.rv-form {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  max-width: 560px;
+}
+
+.rv-form h3 {
+  margin: 0 0 0.8rem;
+}
+
+.rv-field {
+  margin-bottom: 0.9rem;
+}
+
+.rv-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.rv-form input[type='text'],
+.rv-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+}
+
+.rv-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.rv-stars-input {
+  position: relative;
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+.rv-stars-input input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.rv-stars-input label {
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0 0.1rem;
+  color: #c3c7ce;
+  cursor: pointer;
+}
+
+.rv-stars-input input:checked ~ label,
+.rv-stars-input label:hover,
+.rv-stars-input label:hover ~ label {
+  color: #f5a623;
+}
+
+.rv-stars-input input:focus-visible + label {
+  outline: 2px solid var(--accent-btn);
+  border-radius: 4px;
+}

@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductReviews from '../../components/ProductReviews.astro';
+import { getReviewData, applyReviewSchema } from '../../lib/reviews';
 import StoreInfo from '../../components/StoreInfo.astro';
 import { getProductBySlug, getRelatedProducts, getSettings, formatPrice } from '../../lib/db';
 import { parseImages, parseSpecs } from '../../lib/content';
@@ -66,6 +68,11 @@ const productSchema = product
           : undefined,
     }
   : undefined;
+
+const reviewData = product
+  ? await getReviewData(product.id)
+  : { count: 0, avg: 0, items: [] };
+applyReviewSchema(productSchema, reviewData);
 ---
 
 <BaseLayout
@@ -184,6 +191,7 @@ const productSchema = product
                 <div class="rich rich-html" set:html={descriptionHtml}></div>
               </section>
             )}
+            <ProductReviews product={product} data={reviewData} />
           </div>
 
           <aside class="detail-side">

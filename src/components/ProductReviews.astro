@@ -1,0 +1,96 @@
+---
+import type { ReviewData } from '../lib/reviews';
+
+interface Props {
+  product: { id: number; slug: string; name: string };
+  data: ReviewData;
+}
+
+const { product, data } = Astro.props;
+const flag = Astro.url.searchParams.get('review') ?? '';
+const shownAt = Date.now();
+const avgText = data.avg.toFixed(1).replace('.', ',');
+const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
+const formatDate = (d: string) => {
+  const [y, m, day] = d.slice(0, 10).split('-');
+  return `${day}/${m}/${y}`;
+};
+
+const flashes: Record<string, { ok: boolean; text: string }> = {
+  sent: { ok: true, text: 'Cảm ơn bạn! Đánh giá sẽ hiển thị sau khi được cửa hàng kiểm duyệt.' },
+  invalid: {
+    ok: false,
+    text: 'Vui lòng chọn số sao, nhập tên (từ 2 ký tự) và nhận xét (từ 10 ký tự).',
+  },
+  fast: { ok: false, text: 'Bạn gửi quá nhanh, vui lòng thử lại sau vài giây.' },
+  many: { ok: false, text: 'Bạn đã gửi nhiều đánh giá liên tiếp, vui lòng thử lại sau.' },
+};
+const flash = flashes[flag];
+---
+
+<section class="reviews" id="danh-gia">
+  <h2>Đánh giá sản phẩm</h2>
+
+  {flash && <div class:list={['rv-flash', { err: !flash.ok }]}>{flash.text}</div>}
+
+  {data.count > 0 ? (
+    <div class="rv-summary">
+      <div class="rv-avg">{avgText}</div>
+      <div>
+        <div class="rv-stars" aria-label={`${avgText} trên 5 sao`}>{stars(Math.round(data.avg))}</div>
+        <div class="rv-count">{data.count} đánh giá</div>
+      </div>
+    </div>
+  ) : (
+    <p class="rv-empty">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá sản phẩm này.</p>
+  )}
+
+  {data.items.length > 0 && (
+    <ul class="rv-list">
+      {data.items.map((r) => (
+        <li class="rv-item">
+          <div class="rv-head">
+            <strong>{r.name}</strong>
+            <span class="rv-stars sm" aria-label={`${r.rating} sao`}>{stars(r.rating)}</span>
+            <span class="rv-date">{formatDate(r.created_at)}</span>
+          </div>
+          <p class="rv-text">{r.comment}</p>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <form method="post" action="/api/danh-gia/" class="rv-form">
+    <h3>Gửi đánh giá của bạn</h3>
+    <input type="hidden" name="slug" value={product.slug} />
+    <input type="hidden" name="t" value={shownAt} />
+    <div class="rv-hp" aria-hidden="true">
+      <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+    </div>
+
+    <div class="rv-field">
+      <span class="rv-label">Chọn số sao</span>
+      <div class="rv-stars-input" role="radiogroup" aria-label="Số sao">
+        {[5, 4, 3, 2, 1].map((n) => (
+          <>
+            <input type="radio" id={`rv-s${n}`} name="rating" value={n} required />
+            <label for={`rv-s${n}`} title={`${n} sao`}>★</label>
+          </>
+        ))}
+      </div>
+    </div>
+
+    <div class="rv-field">
+      <label class="rv-label" for="rv-name">Tên của bạn</label>
+      <input id="rv-name" name="name" type="text" maxlength="60" required />
+    </div>
+
+    <div class="rv-field">
+      <label class="rv-label" for="rv-comment">Nhận xét</label>
+      <textarea id="rv-comment" name="comment" rows="4" maxlength="1000" required></textarea>
+    </div>
+
+    <button class="btn btn-navy" type="submit">Gửi đánh giá</button>
+    <p class="rv-note">Đánh giá được cửa hàng kiểm duyệt trước khi hiển thị.</p>
+  </form>
+</section>

@@ -1673,3 +1673,83 @@
   font: inherit;
   width: 160px;
 }
+
+
+/* ===== Duyệt đánh giá ===== */
+.rvq-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.rvq-tabs a {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #c9ccd6;
+  color: #2d2a5a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.rvq-tabs a[aria-current='page'] {
+  background: #2d2a5a;
+  color: #fff;
+  border-color: #2d2a5a;
+}
+
+.rvq-list {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.rvq-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e1e3ec;
+}
+
+.rvq-item:last-child {
+  border-bottom: 0;
+}
+
+.rvq-body {
+  flex: 1;
+  min-width: 240px;
+}
+
+.rvq-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.8rem;
+}
+
+.rvq-stars {
+  color: #f5a623;
+  letter-spacing: 2px;
+}
+
+.rvq-meta,
+.rvq-product {
+  color: #5f6368;
+  font-size: 0.9rem;
+}
+
+.rvq-text {
+  margin: 0.4rem 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.rvq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}

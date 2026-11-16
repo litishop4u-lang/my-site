@@ -1,0 +1,130 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+type Row = {
+  id: number;
+  name: string;
+  rating: number;
+  comment: string;
+  status: string;
+  created_at: string;
+  product_name: string | null;
+  product_slug: string | null;
+};
+
+const STATUSES = ['pending', 'approved', 'rejected'];
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  const id = Number(form.get('id'));
+  const back = String(form.get('back') ?? 'pending');
+  const backStatus = STATUSES.includes(back) ? back : 'pending';
+
+  if (Number.isInteger(id) && id > 0) {
+    if (action === 'approve') {
+      await env.DB.prepare("UPDATE product_reviews SET status = 'approved' WHERE id = ?").bind(id).run();
+    } else if (action === 'reject') {
+      await env.DB.prepare("UPDATE product_reviews SET status = 'rejected' WHERE id = ?").bind(id).run();
+    } else if (action === 'delete') {
+      await env.DB.prepare('DELETE FROM product_reviews WHERE id = ?').bind(id).run();
+    }
+  }
+  return Astro.redirect(`/admin/danh-gia/?status=${backStatus}`);
+}
+
+const q = Astro.url.searchParams.get('status') ?? 'pending';
+const status = STATUSES.includes(q) ? q : 'pending';
+
+let rows: Row[] = [];
+const counts: Record<string, number> = { pending: 0, approved: 0, rejected: 0 };
+try {
+  const countResult = await env.DB.prepare(
+    'SELECT status, COUNT(*) AS n FROM product_reviews GROUP BY status',
+  ).all<{ status: string; n: number }>();
+  for (const c of countResult.results) counts[c.status] = c.n;
+
+  const result = await env.DB.prepare(
+    `SELECT r.id, r.name, r.rating, r.comment, r.status, r.created_at,
+            p.name AS product_name, p.slug AS product_slug
+     FROM product_reviews r
+     LEFT JOIN products p ON p.id = r.product_id
+     WHERE r.status = ?
+     ORDER BY r.id DESC
+     LIMIT 200`,
+  )
+    .bind(status)
+    .all<Row>();
+  rows = result.results;
+} catch {
+  rows = [];
+}
+
+const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
+const tabs = [
+  { key: 'pending', label: 'Chờ duyệt' },
+  { key: 'approved', label: 'Đã hiển thị' },
+  { key: 'rejected', label: 'Đã ẩn' },
+];
+---
+
+<AdminLayout title="Đánh giá sản phẩm">
+  <h1>Đánh giá sản phẩm</h1>
+
+  <p class="adm-note" style="margin-top:0">
+    Chỉ duyệt những đánh giá thật của khách hàng. Đánh giá đã duyệt sẽ hiện trên trang sản phẩm và gửi cho Google để hiển thị sao.
+  </p>
+
+  <div class="rvq-tabs">
+    {tabs.map((t) => (
+      <a href={`/admin/danh-gia/?status=${t.key}`} aria-current={status === t.key ? 'page' : undefined}>
+        {t.label} ({counts[t.key] ?? 0})
+      </a>
+    ))}
+  </div>
+
+  {rows.length === 0 && <p class="adm-empty">Không có đánh giá nào ở mục này.</p>}
+
+  <div class="rvq-list">
+    {rows.map((r) => (
+      <form method="post" class="rvq-item">
+        <input type="hidden" name="id" value={r.id} />
+        <input type="hidden" name="back" value={status} />
+        <div class="rvq-body">
+          <div class="rvq-head">
+            <strong>{r.name}</strong>
+            <span class="rvq-stars">{stars(r.rating)}</span>
+            <span class="rvq-meta">{r.created_at}</span>
+          </div>
+          <div class="rvq-product">
+            Sản phẩm:
+            {r.product_slug ? (
+              <a href={`/san-pham/${r.product_slug}/`} target="_blank" rel="noopener">{r.product_name}</a>
+            ) : (
+              <em>(sản phẩm đã bị xóa)</em>
+            )}
+          </div>
+          <p class="rvq-text">{r.comment}</p>
+        </div>
+        <div class="rvq-actions">
+          {r.status !== 'approved' && (
+            <button class="adm-icon-btn" type="submit" name="action" value="approve">Duyệt</button>
+          )}
+          {r.status !== 'rejected' && (
+            <button class="adm-icon-btn" type="submit" name="action" value="reject">Ẩn</button>
+          )}
+          <button
+            class="adm-icon-btn danger"
+            type="submit"
+            name="action"
+            value="delete"
+            onclick="return confirm('Xóa hẳn đánh giá này?')"
+          >Xóa</button>
+        </div>
+      </form>
+    ))}
+  </div>
+</AdminLayout>
