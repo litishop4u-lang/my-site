@@ -20,6 +20,102 @@ const [products, categories, brands, stores, unread] = await Promise.all([
   count('SELECT COUNT(*) AS n FROM stores'),
   count('SELECT COUNT(*) AS n FROM contact_messages WHERE is_read = 0'),
 ]);
+
+// ----- Thống kê truy cập -----
+const q = Number(Astro.url.searchParams.get('days'));
+const days = [7, 30, 90].includes(q) ? q : 30;
+
+const vnDay = (ms: number) => new Date(ms + 7 * 3600 * 1000).toISOString().slice(0, 10);
+const nowMs = Date.now();
+const today = vnDay(nowMs);
+const start = vnDay(nowMs - (days - 1) * 86400000);
+
+type DayRow = { day: string; views: number; visitors: number };
+type TopProduct = { name: string; slug: string; views: number; visitors: number };
+type TopPage = { path: string; views: number };
+type Group = { key: string; n: number };
+
+let dailyRows: DayRow[] = [];
+let topProducts: TopProduct[] = [];
+let topPages: TopPage[] = [];
+let sources: Group[] = [];
+let devices: Group[] = [];
+let clicks: Group[] = [];
+let leads = 0;
+let statsError = false;
+
+try {
+  const [d, tp, pg, so, dv, ck, ld] = await Promise.all([
+    env.DB.prepare(
+      "SELECT day, COUNT(*) AS views, COUNT(DISTINCT visitor) AS visitors FROM page_views WHERE event = 'view' AND day >= ? GROUP BY day",
+    ).bind(start).all<DayRow>(),
+    env.DB.prepare(
+      `SELECT p.name AS name, p.slug AS slug, COUNT(*) AS views, COUNT(DISTINCT v.visitor) AS visitors
+       FROM page_views v JOIN products p ON p.id = v.product_id
+       WHERE v.event = 'view' AND v.day >= ?
+       GROUP BY p.id ORDER BY views DESC LIMIT 10`,
+    ).bind(start).all<TopProduct>(),
+    env.DB.prepare(
+      "SELECT path, COUNT(*) AS views FROM page_views WHERE event = 'view' AND product_id IS NULL AND day >= ? GROUP BY path ORDER BY views DESC LIMIT 8",
+    ).bind(start).all<TopPage>(),
+    env.DB.prepare(
+      "SELECT source AS key, COUNT(*) AS n FROM page_views WHERE event = 'view' AND source != 'internal' AND day >= ? GROUP BY source ORDER BY n DESC",
+    ).bind(start).all<Group>(),
+    env.DB.prepare(
+      "SELECT device AS key, COUNT(*) AS n FROM page_views WHERE event = 'view' AND day >= ? GROUP BY device ORDER BY n DESC",
+    ).bind(start).all<Group>(),
+    env.DB.prepare(
+      "SELECT event AS key, COUNT(*) AS n FROM page_views WHERE event != 'view' AND day >= ? GROUP BY event",
+    ).bind(start).all<Group>(),
+    env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM contact_messages WHERE created_at >= datetime('now', ?)",
+    ).bind(`-${days} days`).first<{ n: number }>(),
+  ]);
+  dailyRows = d.results;
+  topProducts = tp.results;
+  topPages = pg.results;
+  sources = so.results;
+  devices = dv.results;
+  clicks = ck.results;
+  leads = ld?.n ?? 0;
+} catch {
+  statsError = true;
+}
+
+const dayMap = new Map(dailyRows.map((r) => [r.day, r]));
+const series: DayRow[] = [];
+for (let i = days - 1; i >= 0; i--) {
+  const day = vnDay(nowMs - i * 86400000);
+  series.push(dayMap.get(day) ?? { day, views: 0, visitors: 0 });
+}
+const sum = (rows: DayRow[], key: 'views' | 'visitors') => rows.reduce((t, r) => t + r[key], 0);
+const todayRow = dayMap.get(today) ?? { day: today, views: 0, visitors: 0 };
+const last7 = series.slice(-7);
+const maxViews = Math.max(1, ...series.map((r) => r.views));
+const totalViews = sum(series, 'views');
+const totalSources = Math.max(1, sources.reduce((t, g) => t + g.n, 0));
+const totalDevices = Math.max(1, devices.reduce((t, g) => t + g.n, 0));
+
+const SOURCE_LABEL: Record<string, string> = {
+  direct: 'Truy cập trực tiếp',
+  google: 'Google',
+  bing: 'Bing',
+  facebook: 'Facebook / Messenger',
+  zalo: 'Zalo',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
+  instagram: 'Instagram',
+  other: 'Website khác',
+};
+const DEVICE_LABEL: Record<string, string> = { mobile: 'Điện thoại', desktop: 'Máy tính' };
+const CLICK_LABEL: Record<string, string> = {
+  call: 'Bấm gọi điện',
+  zalo: 'Bấm Zalo',
+  messenger: 'Bấm Messenger',
+};
+const clickCount = (key: string) => clicks.find((c) => c.key === key)?.n ?? 0;
+const shortDate = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+const rangeTabs = [7, 30, 90];
 ---
 
 <AdminLayout title="Tổng quan">
@@ -34,5 +130,123 @@ const [products, categories, brands, stores, unread] = await Promise.all([
       <div class="label">Tin nhắn chưa đọc</div>
     </a>
   </div>
-  <p class="adm-note">Chọn các mục ở thanh menu phía trên để quản lý sản phẩm, danh mục, banner, cửa hàng, tin nhắn và cài đặt.</p>
+
+  <div class="an-head">
+    <h2>Lượt truy cập website</h2>
+    <div class="an-tabs">
+      {rangeTabs.map((d) => (
+        <a href={`/admin/?days=${d}`} aria-current={days === d ? 'page' : undefined}>{d} ngày</a>
+      ))}
+    </div>
+  </div>
+
+  {statsError && (
+    <p class="adm-error">Chưa đọc được dữ liệu thống kê. Hãy chạy migration 0012 rồi tải lại trang.</p>
+  )}
+
+  <div class="adm-cards">
+    <div class="adm-card"><div class="num">{todayRow.views}</div><div class="label">Lượt xem hôm nay ({todayRow.visitors} khách)</div></div>
+    <div class="adm-card"><div class="num">{sum(last7, 'views')}</div><div class="label">Lượt xem 7 ngày ({sum(last7, 'visitors')} khách)</div></div>
+    <div class="adm-card"><div class="num">{totalViews}</div><div class="label">Lượt xem {days} ngày ({sum(series, 'visitors')} khách)</div></div>
+    <div class="adm-card"><div class="num">{clickCount('call') + clickCount('zalo') + clickCount('messenger')}</div><div class="label">Lượt bấm Gọi / Zalo / Messenger</div></div>
+    <a class="adm-card adm-card-link" href="/admin/lien-he/">
+      <div class="num">{leads}</div>
+      <div class="label">Khách để lại thông tin liên hệ</div>
+    </a>
+  </div>
+
+  <div class="an-box">
+    <h3>Lượt xem theo ngày ({days} ngày gần nhất)</h3>
+    <div class="an-chart" style={`--n:${series.length}`}>
+      {series.map((r) => (
+        <div class="an-col" title={`${shortDate(r.day)}: ${r.views} lượt xem, ${r.visitors} khách`}>
+          <div class="an-bar" style={`height:${Math.max(r.views > 0 ? 3 : 0, Math.round((r.views / maxViews) * 100))}%`}></div>
+        </div>
+      ))}
+    </div>
+    <div class="an-axis"><span>{shortDate(series[0].day)}</span><span>{shortDate(series[series.length - 1].day)}</span></div>
+  </div>
+
+  <div class="an-grid">
+    <div class="an-box">
+      <h3>Sản phẩm được xem nhiều nhất</h3>
+      {topProducts.length === 0 ? (
+        <p class="adm-empty">Chưa có dữ liệu.</p>
+      ) : (
+        <table class="an-table">
+          <thead><tr><th>#</th><th>Sản phẩm</th><th>Lượt xem</th><th>Khách</th></tr></thead>
+          <tbody>
+            {topProducts.map((p, i) => (
+              <tr>
+                <td>{i + 1}</td>
+                <td><a href={`/san-pham/${p.slug}/`} target="_blank" rel="noopener">{p.name}</a></td>
+                <td>{p.views}</td>
+                <td>{p.visitors}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+
+    <div class="an-box">
+      <h3>Trang được xem nhiều</h3>
+      {topPages.length === 0 ? (
+        <p class="adm-empty">Chưa có dữ liệu.</p>
+      ) : (
+        <table class="an-table">
+          <thead><tr><th>Trang</th><th>Lượt xem</th></tr></thead>
+          <tbody>
+            {topPages.map((p) => (
+              <tr>
+                <td><a href={p.path} target="_blank" rel="noopener">{p.path}</a></td>
+                <td>{p.views}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+
+    <div class="an-box">
+      <h3>Khách đến từ đâu</h3>
+      {sources.length === 0 ? (
+        <p class="adm-empty">Chưa có dữ liệu.</p>
+      ) : (
+        <ul class="an-list">
+          {sources.map((g) => (
+            <li>
+              <div class="an-row"><span>{SOURCE_LABEL[g.key] ?? g.key}</span><strong>{g.n}</strong></div>
+              <div class="an-meter"><span style={`width:${Math.round((g.n / totalSources) * 100)}%`}></span></div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <div class="an-box">
+      <h3>Thiết bị &amp; lượt bấm liên hệ</h3>
+      {devices.length === 0 ? (
+        <p class="adm-empty">Chưa có dữ liệu.</p>
+      ) : (
+        <ul class="an-list">
+          {devices.map((g) => (
+            <li>
+              <div class="an-row"><span>{DEVICE_LABEL[g.key] ?? g.key}</span><strong>{g.n}</strong></div>
+              <div class="an-meter"><span style={`width:${Math.round((g.n / totalDevices) * 100)}%`}></span></div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <ul class="an-list an-clicks">
+        {['call', 'zalo', 'messenger'].map((k) => (
+          <li><div class="an-row"><span>{CLICK_LABEL[k]}</span><strong>{clickCount(k)}</strong></div></li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <p class="adm-note">
+    Thống kê không lưu số điện thoại hay thông tin cá nhân của khách. Một "khách" được đếm theo từng ngày, và lượt truy cập của bạn khi đang đăng nhập quản trị, cùng các robot tìm kiếm, không được tính.
+  </p>
 </AdminLayout>
