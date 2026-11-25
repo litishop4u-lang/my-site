@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let description = existing.description;
-  const locked = /<(figure|img|video|iframe)\b/i.test(existing.description || '');
+  const locked = false;
   if (typeof body.description === 'string' && !locked) {
     const d = body.description.trim().slice(0, 300000);
     description = d ? (d.startsWith(HTML_PREFIX) ? d : HTML_PREFIX + d) : '';

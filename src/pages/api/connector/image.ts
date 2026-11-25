@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
   const hash = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
-    .slice(0, 40);
+    .slice(0, 24);
 
   const key = `img/${hash}.${ext}`;
   const existing = await env.IMAGES_BUCKET.head(key);

@@ -21,8 +21,8 @@ export const GET: APIRoute = async ({ request, url }) => {
   if (!p) return jsonResponse({ error: 'Không đọc được sản phẩm.' }, 404);
 
   const rawDesc = p.description || '';
-  const locked = /<(figure|img|video|iframe)\b/i.test(rawDesc);
-  const html = locked ? '' : await descriptionForEditor(rawDesc);
+  const locked = false;
+  const html = await descriptionForEditor(rawDesc);
 
   return jsonResponse({
     slug: p.slug,
